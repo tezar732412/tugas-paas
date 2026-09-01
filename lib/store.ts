@@ -2,10 +2,10 @@ import { Post, UserProfile, Comment, SystemStats } from './types';
 import { supabase, isSupabaseConfigured } from './supabase/client';
 
 // Local storage keys for session & fallback persistence
-const LOCAL_POSTS_KEY = 'picpulse_posts_v2';
-const LOCAL_USERS_KEY = 'picpulse_users_v2';
-const LOCAL_COMMENTS_KEY = 'picpulse_comments_v2';
-const LOCAL_AUTH_KEY = 'picpulse_auth_session_v2';
+const LOCAL_POSTS_KEY = 'picpulse_posts_v3';
+const LOCAL_USERS_KEY = 'picpulse_users_v3';
+const LOCAL_COMMENTS_KEY = 'picpulse_comments_v3';
+const LOCAL_AUTH_KEY = 'picpulse_auth_session_v3';
 
 function getLocalData<T>(key: string, fallback: T): T {
   if (typeof window === 'undefined') return fallback;
@@ -35,26 +35,30 @@ export async function getCurrentUser(): Promise<UserProfile | null> {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
-        const { data: profile, error } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', user.id)
-          .single();
-
-        if (!error && profile) {
-          return profile as UserProfile;
+        let profile: UserProfile | null = null;
+        try {
+          const { data: profileData } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', user.id)
+            .single();
+          if (profileData) profile = profileData as UserProfile;
+        } catch (err) {
+          console.warn('Error fetching profile from Supabase', err);
         }
 
-        // Return basic profile if DB row is creating
-        return {
+        const currentUser: UserProfile = profile || {
           id: user.id,
-          username: user.email?.split('@')[0] || 'user',
+          username: user.user_metadata?.username || user.email?.split('@')[0] || 'user',
           full_name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'User',
-          avatar_url: user.user_metadata?.avatar_url || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80',
-          role: 'user',
+          avatar_url: user.user_metadata?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.email}`,
+          role: user.user_metadata?.role || 'user',
           created_at: user.created_at,
           is_banned: false,
         };
+
+        setLocalAuthUser(currentUser);
+        return currentUser;
       }
     } catch (e) {
       console.warn('Supabase getUser error, checking local session', e);
@@ -67,6 +71,30 @@ export async function getCurrentUser(): Promise<UserProfile | null> {
 
 export function setLocalAuthUser(user: UserProfile | null): void {
   setLocalData(LOCAL_AUTH_KEY, user);
+  if (user) {
+    // Add user to local users list for admin & store persistence
+    const existingUsers = getLocalData<UserProfile[]>(LOCAL_USERS_KEY, []);
+    if (!existingUsers.some((u) => u.id === user.id)) {
+      const updated = [user, ...existingUsers];
+      setLocalData(LOCAL_USERS_KEY, updated);
+    }
+
+    // Try background upsert to Supabase profiles table
+    if (isSupabaseConfigured && supabase) {
+      supabase
+        .from('profiles')
+        .upsert({
+          id: user.id,
+          username: user.username,
+          full_name: user.full_name,
+          avatar_url: user.avatar_url,
+          role: user.role,
+        })
+        .then(({ error }) => {
+          if (error) console.warn('Supabase profile upsert warning:', error.message);
+        });
+    }
+  }
 }
 
 export async function logoutUser(): Promise<void> {
@@ -85,6 +113,8 @@ export async function logoutUser(): Promise<void> {
 // ----------------------------------------------------
 
 export async function fetchPosts(): Promise<Post[]> {
+  let supabasePosts: Post[] = [];
+
   if (isSupabaseConfigured && supabase) {
     try {
       const { data, error } = await supabase
@@ -96,14 +126,30 @@ export async function fetchPosts(): Promise<Post[]> {
         .order('created_at', { ascending: false });
 
       if (!error && data) {
-        return data as Post[];
+        supabasePosts = data as Post[];
       }
     } catch (e) {
       console.warn('Supabase fetch failed, using fallback', e);
     }
   }
 
-  return getLocalData<Post[]>(LOCAL_POSTS_KEY, []);
+  // Local storage posts
+  const localPosts = getLocalData<Post[]>(LOCAL_POSTS_KEY, []);
+
+  // Merge posts without duplicates
+  const map = new Map<string, Post>();
+  supabasePosts.forEach((p) => map.set(p.id, p));
+  localPosts.forEach((p) => {
+    if (!map.has(p.id)) {
+      map.set(p.id, p);
+    }
+  });
+
+  const merged = Array.from(map.values()).sort(
+    (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+  );
+
+  return merged;
 }
 
 export async function fetchPostById(id: string): Promise<Post | null> {
@@ -140,39 +186,10 @@ export async function createPost(
     }
   }
 
-  // Insert into Supabase database if configured
-  if (isSupabaseConfigured && supabase) {
-    try {
-      const payload = {
-        user_id: newPost.user_id,
-        title: newPost.title,
-        description: newPost.description,
-        category: newPost.category,
-        image_url: finalImageUrl,
-        image_path: imagePath,
-        likes_count: 0,
-        comments_count: 0,
-        is_featured: false,
-      };
-
-      const { data, error } = await supabase
-        .from('posts')
-        .insert(payload)
-        .select(`*, author:profiles(*)`)
-        .single();
-
-      if (!error && data) {
-        return data as Post;
-      }
-    } catch (err) {
-      console.error('Supabase post insert failed, saving locally:', err);
-    }
-  }
-
-  // Fallback Local Insert
-  const posts = getLocalData<Post[]>(LOCAL_POSTS_KEY, []);
-  const users = getLocalData<UserProfile[]>(LOCAL_USERS_KEY, []);
-  const author = users.find((u) => u.id === newPost.user_id) || {
+  // Prepare author profile
+  const users = await fetchUsers();
+  const currentSessionUser = getLocalData<UserProfile | null>(LOCAL_AUTH_KEY, null);
+  const author = users.find((u) => u.id === newPost.user_id) || currentSessionUser || {
     id: newPost.user_id,
     username: 'user',
     full_name: 'Pengguna',
@@ -196,8 +213,53 @@ export async function createPost(
     is_liked: false,
   };
 
-  const updatedPosts = [createdPost, ...posts];
+  // Insert into Supabase database if configured
+  if (isSupabaseConfigured && supabase) {
+    try {
+      // Guarantee author profile exists in profiles table before inserting post
+      await supabase.from('profiles').upsert({
+        id: author.id,
+        username: author.username,
+        full_name: author.full_name,
+        avatar_url: author.avatar_url,
+        role: author.role,
+      });
+
+      const payload = {
+        user_id: newPost.user_id,
+        title: newPost.title,
+        description: newPost.description,
+        category: newPost.category,
+        image_url: finalImageUrl,
+        image_path: imagePath,
+        likes_count: 0,
+        comments_count: 0,
+        is_featured: false,
+      };
+
+      const { data, error } = await supabase
+        .from('posts')
+        .insert(payload)
+        .select(`*, author:profiles(*)`)
+        .single();
+
+      if (!error && data) {
+        const dbPost = data as Post;
+        // Save to localStorage as backup
+        const existingPosts = getLocalData<Post[]>(LOCAL_POSTS_KEY, []);
+        setLocalData(LOCAL_POSTS_KEY, [dbPost, ...existingPosts]);
+        return dbPost;
+      }
+    } catch (err) {
+      console.error('Supabase post insert failed, saving locally:', err);
+    }
+  }
+
+  // Local Storage Save (Guarantees post is NEVER lost)
+  const existingPosts = getLocalData<Post[]>(LOCAL_POSTS_KEY, []);
+  const updatedPosts = [createdPost, ...existingPosts];
   setLocalData(LOCAL_POSTS_KEY, updatedPosts);
+
   return createdPost;
 }
 
@@ -205,6 +267,18 @@ export async function updatePost(
   postId: string,
   updates: Partial<Pick<Post, 'title' | 'description' | 'category' | 'is_featured'>>
 ): Promise<Post | null> {
+  // Update local storage
+  const posts = getLocalData<Post[]>(LOCAL_POSTS_KEY, []);
+  let updatedPost: Post | null = null;
+  const newPosts = posts.map((p) => {
+    if (p.id === postId) {
+      updatedPost = { ...p, ...updates, updated_at: new Date().toISOString() };
+      return updatedPost;
+    }
+    return p;
+  });
+  setLocalData(LOCAL_POSTS_KEY, newPosts);
+
   if (isSupabaseConfigured && supabase) {
     try {
       const { data, error } = await supabase
@@ -222,35 +296,23 @@ export async function updatePost(
     }
   }
 
-  // Local fallback
-  const posts = getLocalData<Post[]>(LOCAL_POSTS_KEY, []);
-  let updatedPost: Post | null = null;
-  const newPosts = posts.map((p) => {
-    if (p.id === postId) {
-      updatedPost = { ...p, ...updates, updated_at: new Date().toISOString() };
-      return updatedPost;
-    }
-    return p;
-  });
-
-  setLocalData(LOCAL_POSTS_KEY, newPosts);
   return updatedPost;
 }
 
 export async function deletePost(postId: string): Promise<boolean> {
+  // Remove from local storage
+  const posts = getLocalData<Post[]>(LOCAL_POSTS_KEY, []);
+  const filtered = posts.filter((p) => p.id !== postId);
+  setLocalData(LOCAL_POSTS_KEY, filtered);
+
   if (isSupabaseConfigured && supabase) {
     try {
-      const { error } = await supabase.from('posts').delete().eq('id', postId);
-      if (!error) return true;
+      await supabase.from('posts').delete().eq('id', postId);
     } catch (err) {
       console.error('Supabase delete err:', err);
     }
   }
 
-  // Local fallback
-  const posts = getLocalData<Post[]>(LOCAL_POSTS_KEY, []);
-  const filtered = posts.filter((p) => p.id !== postId);
-  setLocalData(LOCAL_POSTS_KEY, filtered);
   return true;
 }
 
@@ -282,6 +344,8 @@ export async function toggleLikePost(postId: string, currentUserId: string): Pro
 }
 
 export async function fetchComments(postId: string): Promise<Comment[]> {
+  let supabaseComments: Comment[] = [];
+
   if (isSupabaseConfigured && supabase) {
     try {
       const { data, error } = await supabase
@@ -290,19 +354,28 @@ export async function fetchComments(postId: string): Promise<Comment[]> {
         .eq('post_id', postId)
         .order('created_at', { ascending: true });
 
-      if (!error && data) return data as Comment[];
+      if (!error && data) supabaseComments = data as Comment[];
     } catch (err) {
       console.warn('Comments fetch err:', err);
     }
   }
 
-  const allComments = getLocalData<Record<string, Comment[]>>(LOCAL_COMMENTS_KEY, {});
-  return allComments[postId] || [];
+  const allLocalComments = getLocalData<Record<string, Comment[]>>(LOCAL_COMMENTS_KEY, {});
+  const localComments = allLocalComments[postId] || [];
+
+  const map = new Map<string, Comment>();
+  supabaseComments.forEach((c) => map.set(c.id, c));
+  localComments.forEach((c) => {
+    if (!map.has(c.id)) map.set(c.id, c);
+  });
+
+  return Array.from(map.values());
 }
 
 export async function addComment(postId: string, userId: string, content: string): Promise<Comment> {
-  const users = getLocalData<UserProfile[]>(LOCAL_USERS_KEY, []);
-  const author = users.find((u) => u.id === userId) || {
+  const users = await fetchUsers();
+  const currentSessionUser = getLocalData<UserProfile | null>(LOCAL_AUTH_KEY, null);
+  const author = users.find((u) => u.id === userId) || currentSessionUser || {
     id: userId,
     username: 'user',
     full_name: 'Pengguna',
@@ -322,6 +395,15 @@ export async function addComment(postId: string, userId: string, content: string
 
   if (isSupabaseConfigured && supabase) {
     try {
+      // Ensure profile exists in profiles table
+      await supabase.from('profiles').upsert({
+        id: author.id,
+        username: author.username,
+        full_name: author.full_name,
+        avatar_url: author.avatar_url,
+        role: author.role,
+      });
+
       await supabase.from('comments').insert({
         post_id: postId,
         user_id: userId,
@@ -356,24 +438,50 @@ export async function deleteComment(postId: string, commentId: string): Promise<
     allComments[postId] = allComments[postId].filter((c) => c.id !== commentId);
     setLocalData(LOCAL_COMMENTS_KEY, allComments);
   }
+
+  if (isSupabaseConfigured && supabase) {
+    try {
+      await supabase.from('comments').delete().eq('id', commentId);
+    } catch (e) {
+      console.error('Supabase comment delete error', e);
+    }
+  }
+
   return true;
 }
 
 export async function fetchUsers(): Promise<UserProfile[]> {
+  let supabaseUsers: UserProfile[] = [];
+
   if (isSupabaseConfigured && supabase) {
     try {
-      const { data, error } = await supabase.from('profiles').select('*').order('created_at', { ascending: false });
-      if (!error && data) return data as UserProfile[];
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (!error && data) {
+        supabaseUsers = data as UserProfile[];
+      }
     } catch (e) {
       console.warn('Profiles fetch error:', e);
     }
   }
 
-  return getLocalData<UserProfile[]>(LOCAL_USERS_KEY, []);
+  const localUsers = getLocalData<UserProfile[]>(LOCAL_USERS_KEY, []);
+
+  // Merge users without duplicates
+  const map = new Map<string, UserProfile>();
+  supabaseUsers.forEach((u) => map.set(u.id, u));
+  localUsers.forEach((u) => {
+    if (!map.has(u.id)) map.set(u.id, u);
+  });
+
+  return Array.from(map.values());
 }
 
 export async function toggleUserRole(userId: string): Promise<UserProfile | null> {
-  const users = getLocalData<UserProfile[]>(LOCAL_USERS_KEY, []);
+  const users = await fetchUsers();
   let updatedUser: UserProfile | null = null;
 
   const newUsers = users.map((u) => {
@@ -398,7 +506,7 @@ export async function toggleUserRole(userId: string): Promise<UserProfile | null
 }
 
 export async function toggleBanUser(userId: string): Promise<UserProfile | null> {
-  const users = getLocalData<UserProfile[]>(LOCAL_USERS_KEY, []);
+  const users = await fetchUsers();
   let updatedUser: UserProfile | null = null;
 
   const newUsers = users.map((u) => {

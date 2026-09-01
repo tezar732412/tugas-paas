@@ -75,59 +75,49 @@ DROP POLICY IF EXISTS "Public profiles are viewable by everyone" ON public.profi
 CREATE POLICY "Public profiles are viewable by everyone" 
   ON public.profiles FOR SELECT USING (true);
 
-DROP POLICY IF EXISTS "Users can insert their own profile" ON public.profiles;
-CREATE POLICY "Users can insert their own profile" 
-  ON public.profiles FOR INSERT WITH CHECK (auth.uid() = id);
+DROP POLICY IF EXISTS "Users can insert profiles" ON public.profiles;
+CREATE POLICY "Users can insert profiles" 
+  ON public.profiles FOR INSERT WITH CHECK (true);
 
-DROP POLICY IF EXISTS "Users can update their own profile" ON public.profiles;
-CREATE POLICY "Users can update their own profile" 
-  ON public.profiles FOR UPDATE USING (auth.uid() = id);
+DROP POLICY IF EXISTS "Users can update profiles" ON public.profiles;
+CREATE POLICY "Users can update profiles" 
+  ON public.profiles FOR UPDATE USING (true);
 
 -- 9. RLS POLICIES FOR POSTS
 DROP POLICY IF EXISTS "Posts are viewable by everyone" ON public.posts;
 CREATE POLICY "Posts are viewable by everyone" 
   ON public.posts FOR SELECT USING (true);
 
-DROP POLICY IF EXISTS "Authenticated users can create posts" ON public.posts;
-CREATE POLICY "Authenticated users can create posts" 
-  ON public.posts FOR INSERT WITH CHECK (auth.uid() = user_id);
+DROP POLICY IF EXISTS "Posts insert policy" ON public.posts;
+CREATE POLICY "Posts insert policy" 
+  ON public.posts FOR INSERT WITH CHECK (true);
 
-DROP POLICY IF EXISTS "Users can update own post or admin can update any" ON public.posts;
-CREATE POLICY "Users can update own post or admin can update any" 
-  ON public.posts FOR UPDATE USING (
-    auth.uid() = user_id OR EXISTS (
-      SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin'
-    )
-  );
+DROP POLICY IF EXISTS "Posts update policy" ON public.posts;
+CREATE POLICY "Posts update policy" 
+  ON public.posts FOR UPDATE USING (true);
 
-DROP POLICY IF EXISTS "Users can delete own post or admin can delete any" ON public.posts;
-CREATE POLICY "Users can delete own post or admin can delete any" 
-  ON public.posts FOR DELETE USING (
-    auth.uid() = user_id OR EXISTS (
-      SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin'
-    )
-  );
+DROP POLICY IF EXISTS "Posts delete policy" ON public.posts;
+CREATE POLICY "Posts delete policy" 
+  ON public.posts FOR DELETE USING (true);
 
 -- 10. RLS POLICIES FOR COMMENTS & LIKES
 DROP POLICY IF EXISTS "Comments viewable by everyone" ON public.comments;
 CREATE POLICY "Comments viewable by everyone" ON public.comments FOR SELECT USING (true);
 
-DROP POLICY IF EXISTS "Authenticated users can comment" ON public.comments;
-CREATE POLICY "Authenticated users can comment" ON public.comments FOR INSERT WITH CHECK (auth.uid() = user_id);
+DROP POLICY IF EXISTS "Comments insert policy" ON public.comments;
+CREATE POLICY "Comments insert policy" ON public.comments FOR INSERT WITH CHECK (true);
 
-DROP POLICY IF EXISTS "Users can delete own comment or admin" ON public.comments;
-CREATE POLICY "Users can delete own comment or admin" ON public.comments FOR DELETE USING (
-  auth.uid() = user_id OR EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin')
-);
+DROP POLICY IF EXISTS "Comments delete policy" ON public.comments;
+CREATE POLICY "Comments delete policy" ON public.comments FOR DELETE USING (true);
 
 DROP POLICY IF EXISTS "Likes viewable by everyone" ON public.likes;
 CREATE POLICY "Likes viewable by everyone" ON public.likes FOR SELECT USING (true);
 
-DROP POLICY IF EXISTS "Authenticated users can like" ON public.likes;
-CREATE POLICY "Authenticated users can like" ON public.likes FOR INSERT WITH CHECK (auth.uid() = user_id);
+DROP POLICY IF EXISTS "Likes insert policy" ON public.likes;
+CREATE POLICY "Likes insert policy" ON public.likes FOR INSERT WITH CHECK (true);
 
-DROP POLICY IF EXISTS "Users can unlike" ON public.likes;
-CREATE POLICY "Users can unlike" ON public.likes FOR DELETE USING (auth.uid() = user_id);
+DROP POLICY IF EXISTS "Likes delete policy" ON public.likes;
+CREATE POLICY "Likes delete policy" ON public.likes FOR DELETE USING (true);
 
 -- 11. TRIGGER UNTUK AUTOMATIC PROFILE CREATION UPON SIGN UP
 CREATE OR REPLACE FUNCTION public.handle_new_user()
@@ -139,9 +129,16 @@ BEGIN
     COALESCE(new.raw_user_meta_data->>'username', split_part(new.email, '@', 1)),
     COALESCE(new.raw_user_meta_data->>'full_name', new.raw_user_meta_data->>'name', 'User PicPulse'),
     COALESCE(new.raw_user_meta_data->>'avatar_url', 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80'),
-    'user'
+    CASE 
+      WHEN (new.raw_user_meta_data->>'role') = 'admin' THEN 'admin'::user_role 
+      ELSE 'user'::user_role 
+    END
   )
-  ON CONFLICT (id) DO NOTHING;
+  ON CONFLICT (id) DO UPDATE SET
+    username = EXCLUDED.username,
+    full_name = EXCLUDED.full_name,
+    avatar_url = EXCLUDED.avatar_url,
+    role = EXCLUDED.role;
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
@@ -162,12 +159,12 @@ CREATE POLICY "Public Read Access for Photos Bucket"
   ON storage.objects FOR SELECT
   USING (bucket_id = 'photos');
 
-DROP POLICY IF EXISTS "Authenticated Upload Access for Photos Bucket" ON storage.objects;
-CREATE POLICY "Authenticated Upload Access for Photos Bucket"
+DROP POLICY IF EXISTS "Public Upload Access for Photos Bucket" ON storage.objects;
+CREATE POLICY "Public Upload Access for Photos Bucket"
   ON storage.objects FOR INSERT
   WITH CHECK (bucket_id = 'photos');
 
-DROP POLICY IF EXISTS "Owner or Admin Delete Access for Photos Bucket" ON storage.objects;
-CREATE POLICY "Owner or Admin Delete Access for Photos Bucket"
+DROP POLICY IF EXISTS "Public Delete Access for Photos Bucket" ON storage.objects;
+CREATE POLICY "Public Delete Access for Photos Bucket"
   ON storage.objects FOR DELETE
   USING (bucket_id = 'photos');
