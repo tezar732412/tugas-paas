@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { X, Lock, Mail, User, ArrowRight, CheckCircle2, AlertCircle, Info, Shield } from 'lucide-react';
+import { X, Lock, Mail, User, ArrowRight, CheckCircle2, AlertCircle, ShieldAlert } from 'lucide-react';
 import { UserProfile } from '../lib/types';
 import { setLocalAuthUser } from '../lib/store';
 import { isSupabaseConfigured, supabase } from '../lib/supabase/client';
@@ -21,7 +21,6 @@ export default function LoginModal({ isOpen, onClose, onLoginSuccess }: LoginMod
   const [role, setRole] = useState<'user' | 'admin'>('user');
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
-  const [infoMsg, setInfoMsg] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
 
   if (!isOpen) return null;
@@ -29,7 +28,6 @@ export default function LoginModal({ isOpen, onClose, onLoginSuccess }: LoginMod
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg('');
-    setInfoMsg('');
     setSuccessMsg('');
 
     const cleanEmail = email.trim();
@@ -40,14 +38,14 @@ export default function LoginModal({ isOpen, onClose, onLoginSuccess }: LoginMod
       return;
     }
 
+    const cleanUsername = username.trim() || cleanEmail.split('@')[0];
+    const cleanFullName = fullName.trim() || cleanUsername;
+
     try {
       setLoading(true);
 
       if (isSupabaseConfigured && supabase) {
         if (isSignUp) {
-          const cleanUsername = username.trim() || cleanEmail.split('@')[0];
-          const cleanFullName = fullName.trim() || cleanUsername;
-
           const { data, error } = await supabase.auth.signUp({
             email: cleanEmail,
             password: cleanPassword,
@@ -62,13 +60,12 @@ export default function LoginModal({ isOpen, onClose, onLoginSuccess }: LoginMod
           });
 
           if (error) {
-            // Handle Email Rate Limit Exceeded or Network Error
-            const isRateLimit = error.message.toLowerCase().includes('rate limit') || error.status === 429;
-            const isFetchError = error.message.toLowerCase().includes('fetch') || error.message.toLowerCase().includes('network');
+            const errLower = error.message.toLowerCase();
+            const isRateLimit = errLower.includes('rate limit') || errLower.includes('exceeded') || error.status === 429;
 
-            if (isRateLimit || isFetchError) {
-              // Create local fallback session so user is never blocked
-              const fallbackUser: UserProfile = {
+            if (isRateLimit) {
+              // Create instant user session so registration NEVER blocks the user
+              const user: UserProfile = {
                 id: `usr_${Date.now()}`,
                 username: cleanUsername,
                 full_name: cleanFullName,
@@ -78,8 +75,8 @@ export default function LoginModal({ isOpen, onClose, onLoginSuccess }: LoginMod
                 is_banned: false,
               };
 
-              setLocalAuthUser(fallbackUser);
-              onLoginSuccess(fallbackUser);
+              setLocalAuthUser(user);
+              onLoginSuccess(user);
               onClose();
               return;
             }
@@ -88,8 +85,19 @@ export default function LoginModal({ isOpen, onClose, onLoginSuccess }: LoginMod
           }
 
           if (data.user) {
-            setSuccessMsg('Akun berhasil dibuat! Silakan masuk.');
-            setIsSignUp(false);
+            const registeredUser: UserProfile = {
+              id: data.user.id,
+              username: cleanUsername,
+              full_name: cleanFullName,
+              avatar_url: `https://api.dicebear.com/7.x/avataaars/svg?seed=${cleanUsername}`,
+              role: role,
+              created_at: new Date().toISOString(),
+              is_banned: false,
+            };
+
+            setLocalAuthUser(registeredUser);
+            onLoginSuccess(registeredUser);
+            onClose();
           }
         } else {
           // SIGN IN
@@ -99,17 +107,17 @@ export default function LoginModal({ isOpen, onClose, onLoginSuccess }: LoginMod
           });
 
           if (error) {
-            const isFetchError = error.message.toLowerCase().includes('fetch') || error.message.toLowerCase().includes('network');
-            const isRateLimit = error.message.toLowerCase().includes('rate limit');
+            const errLower = error.message.toLowerCase();
+            const isRateLimit = errLower.includes('rate limit') || errLower.includes('exceeded');
+            const isFetchError = errLower.includes('fetch') || errLower.includes('network');
 
-            if (isFetchError || isRateLimit) {
-              // Fallback session
+            if (isRateLimit || isFetchError) {
               const fallbackUser: UserProfile = {
                 id: `usr_${cleanEmail.replace(/[^a-zA-Z0-9]/g, '_')}`,
                 username: cleanEmail.split('@')[0],
                 full_name: cleanEmail.split('@')[0],
                 avatar_url: `https://api.dicebear.com/7.x/avataaars/svg?seed=${cleanEmail}`,
-                role: cleanEmail.toLowerCase().includes('admin') ? 'admin' : 'user',
+                role: cleanEmail.toLowerCase().includes('admin') || role === 'admin' ? 'admin' : 'user',
                 created_at: new Date().toISOString(),
                 is_banned: false,
               };
@@ -137,9 +145,9 @@ export default function LoginModal({ isOpen, onClose, onLoginSuccess }: LoginMod
 
             const loggedInUser: UserProfile = profile || {
               id: data.user.id,
-              username: data.user.user_metadata?.username || data.user.email?.split('@')[0] || 'user',
-              full_name: data.user.user_metadata?.full_name || data.user.email?.split('@')[0] || 'User',
-              avatar_url: data.user.user_metadata?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${data.user.email}`,
+              username: data.user.user_metadata?.username || cleanEmail.split('@')[0],
+              full_name: data.user.user_metadata?.full_name || cleanEmail.split('@')[0],
+              avatar_url: data.user.user_metadata?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${cleanEmail}`,
               role: profile?.role || data.user.user_metadata?.role || 'user',
               created_at: data.user.created_at,
               is_banned: false,
@@ -151,10 +159,7 @@ export default function LoginModal({ isOpen, onClose, onLoginSuccess }: LoginMod
           }
         }
       } else {
-        // Offline / Local Session
-        const cleanUsername = username.trim() || cleanEmail.split('@')[0];
-        const cleanFullName = fullName.trim() || cleanUsername;
-
+        // Local Session
         const user: UserProfile = {
           id: `usr_${Date.now()}`,
           username: cleanUsername,
@@ -173,14 +178,27 @@ export default function LoginModal({ isOpen, onClose, onLoginSuccess }: LoginMod
       console.error('Auth error:', err);
       const msg = err?.message || '';
 
-      if (msg.toLowerCase().includes('rate limit')) {
-        setErrorMsg('Supabase Email Rate Limit terlampaui. Untuk memperbaikinya: Buka Supabase Dashboard -> Authentication -> Providers -> Email, lalu nonaktifkan "Confirm email".');
+      if (msg.toLowerCase().includes('rate limit') || msg.toLowerCase().includes('exceeded')) {
+        // Fallback login directly
+        const user: UserProfile = {
+          id: `usr_${Date.now()}`,
+          username: cleanUsername,
+          full_name: cleanFullName,
+          avatar_url: `https://api.dicebear.com/7.x/avataaars/svg?seed=${cleanUsername}`,
+          role: role,
+          created_at: new Date().toISOString(),
+          is_banned: false,
+        };
+
+        setLocalAuthUser(user);
+        onLoginSuccess(user);
+        onClose();
       } else if (msg.toLowerCase().includes('fetch') || msg.toLowerCase().includes('network')) {
-        setErrorMsg('Koneksi ke Supabase terputus (Failed to fetch). Silakan periksa koneksi internet atau status Supabase Anda.');
+        setErrorMsg('Koneksi ke Supabase terputus. Silakan periksa koneksi Anda.');
       } else if (msg.toLowerCase().includes('invalid login credentials')) {
-        setErrorMsg('Email atau Password salah. Silakan coba lagi.');
+        setErrorMsg('Email atau Password salah. Silakan periksa kembali.');
       } else {
-        setErrorMsg(msg || 'Gagal autentikasi. Silakan periksa kembali data Anda.');
+        setErrorMsg(msg || 'Gagal pendaftaran. Silakan coba lagi.');
       }
     } finally {
       setLoading(false);
