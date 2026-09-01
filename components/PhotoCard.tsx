@@ -6,7 +6,7 @@ import { Post, UserProfile } from '../lib/types';
 
 interface PhotoCardProps {
   post: Post;
-  currentUser: UserProfile;
+  currentUser: UserProfile | null;
   onLikeToggle: (postId: string) => void;
   onSelectPost: (post: Post) => void;
   onEditPost: (post: Post) => void;
@@ -21,8 +21,8 @@ export default function PhotoCard({
   onEditPost,
   onDeletePost,
 }: PhotoCardProps) {
-  const isOwner = currentUser.id === post.user_id;
-  const isAdmin = currentUser.role === 'admin';
+  const isOwner = currentUser?.id === post.user_id;
+  const isAdmin = currentUser?.role === 'admin';
   const canModify = isOwner || isAdmin;
 
   return (
@@ -93,7 +93,7 @@ export default function PhotoCard({
                 e.stopPropagation();
                 onLikeToggle(post.id);
               }}
-              className={`flex items-center gap-1.5 text-xs font-extrabold px-2.5 py-1 rounded-xl transition-all ${
+              className={`flex items-center gap-1.5 text-xs font-extrabold px-2.5 py-1 rounded-xl transition-all cursor-pointer ${
                 post.is_liked
                   ? 'bg-rose-50 text-rose-600 border border-rose-200'
                   : 'text-slate-500 hover:text-rose-600 hover:bg-slate-50'
@@ -110,7 +110,7 @@ export default function PhotoCard({
                 e.stopPropagation();
                 onSelectPost(post);
               }}
-              className="flex items-center gap-1.5 text-xs font-extrabold text-slate-500 hover:text-indigo-600 transition-colors"
+              className="flex items-center gap-1.5 text-xs font-extrabold text-slate-500 hover:text-indigo-600 transition-colors cursor-pointer"
             >
               <MessageCircle className="w-3.5 h-3.5" />
               <span>{post.comments_count}</span>

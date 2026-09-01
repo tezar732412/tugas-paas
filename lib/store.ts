@@ -1,130 +1,11 @@
 import { Post, UserProfile, Comment, SystemStats } from './types';
 import { supabase, isSupabaseConfigured } from './supabase/client';
 
-export const DEMO_USERS: UserProfile[] = [
-  {
-    id: 'usr_admin_01',
-    username: 'alex_admin',
-    full_name: 'Alex Rivera (Admin)',
-    avatar_url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80',
-    role: 'admin',
-    created_at: new Date(Date.now() - 30 * 86400000).toISOString(),
-    is_banned: false,
-  },
-  {
-    id: 'usr_user_02',
-    username: 'sarah_lens',
-    full_name: 'Sarah Chen',
-    avatar_url: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=200&q=80',
-    role: 'user',
-    created_at: new Date(Date.now() - 15 * 86400000).toISOString(),
-    is_banned: false,
-  },
-  {
-    id: 'usr_user_03',
-    username: 'marcus_art',
-    full_name: 'Marcus Vance',
-    avatar_url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=200&q=80',
-    role: 'user',
-    created_at: new Date(Date.now() - 5 * 86400000).toISOString(),
-    is_banned: false,
-  }
-];
-
-export const INITIAL_POSTS: Post[] = [
-  {
-    id: 'post_01',
-    user_id: 'usr_user_02',
-    title: 'Neon Nights in Tokyo',
-    description: 'Exploring the vibrant alleys of Shinjuku under the golden neon reflection of rain.',
-    category: 'Urban',
-    image_url: 'https://images.unsplash.com/photo-1503899036084-c55cdd92da26?auto=format&fit=crop&w=1200&q=80',
-    likes_count: 142,
-    comments_count: 18,
-    is_featured: true,
-    created_at: new Date(Date.now() - 2 * 3600000).toISOString(),
-    author: DEMO_USERS[1],
-    is_liked: false,
-  },
-  {
-    id: 'post_02',
-    user_id: 'usr_admin_01',
-    title: 'Mist in the Emerald Valley',
-    description: 'Early morning hike capturing the serene golden light piercing through mountain fog.',
-    category: 'Nature',
-    image_url: 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&w=1200&q=80',
-    likes_count: 289,
-    comments_count: 34,
-    is_featured: true,
-    created_at: new Date(Date.now() - 8 * 3600000).toISOString(),
-    author: DEMO_USERS[0],
-    is_liked: true,
-  },
-  {
-    id: 'post_03',
-    user_id: 'usr_user_03',
-    title: 'Minimalist Modern Architecture',
-    description: 'Geometry and shadow play on a concrete facade in downtown Chicago.',
-    category: 'Architecture',
-    image_url: 'https://images.unsplash.com/photo-1513694203232-719a280e022f?auto=format&fit=crop&w=1200&q=80',
-    likes_count: 95,
-    comments_count: 8,
-    is_featured: false,
-    created_at: new Date(Date.now() - 24 * 3600000).toISOString(),
-    author: DEMO_USERS[2],
-    is_liked: false,
-  },
-  {
-    id: 'post_04',
-    user_id: 'usr_user_02',
-    title: 'Portrait of Sunset Horizon',
-    description: 'Warm pastel tones over coastal waves during golden hour.',
-    category: 'Photography',
-    image_url: 'https://images.unsplash.com/photo-1495616811223-4d98c6e9c869?auto=format&fit=crop&w=1200&q=80',
-    likes_count: 210,
-    comments_count: 12,
-    is_featured: false,
-    created_at: new Date(Date.now() - 48 * 3600000).toISOString(),
-    author: DEMO_USERS[1],
-    is_liked: true,
-  }
-];
-
-export const INITIAL_COMMENTS: Record<string, Comment[]> = {
-  'post_01': [
-    {
-      id: 'c_1',
-      post_id: 'post_01',
-      user_id: 'usr_admin_01',
-      content: 'Pencahayaan neon-nya sangat dramatis! Kamera apa yang kamu pakai?',
-      created_at: new Date(Date.now() - 1 * 3600000).toISOString(),
-      author: DEMO_USERS[0]
-    },
-    {
-      id: 'c_2',
-      post_id: 'post_01',
-      user_id: 'usr_user_03',
-      content: 'Komposisi luar biasa. Suka sekali dengan efek pantulan di jalan basah!',
-      created_at: new Date(Date.now() - 30 * 60000).toISOString(),
-      author: DEMO_USERS[2]
-    }
-  ],
-  'post_02': [
-    {
-      id: 'c_3',
-      post_id: 'post_02',
-      user_id: 'usr_user_02',
-      content: 'Pemandangan yang menenangkan banget. Lokasinya di mana ini Alex?',
-      created_at: new Date(Date.now() - 5 * 3600000).toISOString(),
-      author: DEMO_USERS[1]
-    }
-  ]
-};
-
-// Local storage keys for fallback persistence
-const LOCAL_POSTS_KEY = 'picpulse_posts_v1';
-const LOCAL_USERS_KEY = 'picpulse_users_v1';
-const LOCAL_COMMENTS_KEY = 'picpulse_comments_v1';
+// Local storage keys for session & fallback persistence
+const LOCAL_POSTS_KEY = 'picpulse_posts_v2';
+const LOCAL_USERS_KEY = 'picpulse_users_v2';
+const LOCAL_COMMENTS_KEY = 'picpulse_comments_v2';
+const LOCAL_AUTH_KEY = 'picpulse_auth_session_v2';
 
 function getLocalData<T>(key: string, fallback: T): T {
   if (typeof window === 'undefined') return fallback;
@@ -143,6 +24,60 @@ function setLocalData<T>(key: string, value: T): void {
   } catch (err) {
     console.error('Error writing to localStorage', err);
   }
+}
+
+// ----------------------------------------------------
+// AUTHENTICATION STATE & HELPERS
+// ----------------------------------------------------
+
+export async function getCurrentUser(): Promise<UserProfile | null> {
+  if (isSupabaseConfigured && supabase) {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data: profile, error } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', user.id)
+          .single();
+
+        if (!error && profile) {
+          return profile as UserProfile;
+        }
+
+        // Return basic profile if DB row is creating
+        return {
+          id: user.id,
+          username: user.email?.split('@')[0] || 'user',
+          full_name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'User',
+          avatar_url: user.user_metadata?.avatar_url || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80',
+          role: 'user',
+          created_at: user.created_at,
+          is_banned: false,
+        };
+      }
+    } catch (e) {
+      console.warn('Supabase getUser error, checking local session', e);
+    }
+  }
+
+  // Local storage session
+  return getLocalData<UserProfile | null>(LOCAL_AUTH_KEY, null);
+}
+
+export function setLocalAuthUser(user: UserProfile | null): void {
+  setLocalData(LOCAL_AUTH_KEY, user);
+}
+
+export async function logoutUser(): Promise<void> {
+  if (isSupabaseConfigured && supabase) {
+    try {
+      await supabase.auth.signOut();
+    } catch (e) {
+      console.error('Supabase signout error', e);
+    }
+  }
+  setLocalData(LOCAL_AUTH_KEY, null);
 }
 
 // ----------------------------------------------------
@@ -168,9 +103,7 @@ export async function fetchPosts(): Promise<Post[]> {
     }
   }
 
-  // Fallback to local storage or initial posts
-  const posts = getLocalData<Post[]>(LOCAL_POSTS_KEY, INITIAL_POSTS);
-  return posts;
+  return getLocalData<Post[]>(LOCAL_POSTS_KEY, []);
 }
 
 export async function fetchPostById(id: string): Promise<Post | null> {
@@ -237,9 +170,16 @@ export async function createPost(
   }
 
   // Fallback Local Insert
-  const posts = getLocalData<Post[]>(LOCAL_POSTS_KEY, INITIAL_POSTS);
-  const users = getLocalData<UserProfile[]>(LOCAL_USERS_KEY, DEMO_USERS);
-  const author = users.find((u) => u.id === newPost.user_id) || users[0];
+  const posts = getLocalData<Post[]>(LOCAL_POSTS_KEY, []);
+  const users = getLocalData<UserProfile[]>(LOCAL_USERS_KEY, []);
+  const author = users.find((u) => u.id === newPost.user_id) || {
+    id: newPost.user_id,
+    username: 'user',
+    full_name: 'Pengguna',
+    avatar_url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200',
+    role: 'user',
+    created_at: new Date().toISOString(),
+  };
 
   const createdPost: Post = {
     id: `post_${Date.now()}`,
@@ -283,7 +223,7 @@ export async function updatePost(
   }
 
   // Local fallback
-  const posts = getLocalData<Post[]>(LOCAL_POSTS_KEY, INITIAL_POSTS);
+  const posts = getLocalData<Post[]>(LOCAL_POSTS_KEY, []);
   let updatedPost: Post | null = null;
   const newPosts = posts.map((p) => {
     if (p.id === postId) {
@@ -308,14 +248,14 @@ export async function deletePost(postId: string): Promise<boolean> {
   }
 
   // Local fallback
-  const posts = getLocalData<Post[]>(LOCAL_POSTS_KEY, INITIAL_POSTS);
+  const posts = getLocalData<Post[]>(LOCAL_POSTS_KEY, []);
   const filtered = posts.filter((p) => p.id !== postId);
   setLocalData(LOCAL_POSTS_KEY, filtered);
   return true;
 }
 
 export async function toggleLikePost(postId: string, currentUserId: string): Promise<{ likesCount: number; isLiked: boolean }> {
-  const posts = getLocalData<Post[]>(LOCAL_POSTS_KEY, INITIAL_POSTS);
+  const posts = getLocalData<Post[]>(LOCAL_POSTS_KEY, []);
   let newLikes = 0;
   let isLiked = false;
 
@@ -356,13 +296,20 @@ export async function fetchComments(postId: string): Promise<Comment[]> {
     }
   }
 
-  const allComments = getLocalData<Record<string, Comment[]>>(LOCAL_COMMENTS_KEY, INITIAL_COMMENTS);
+  const allComments = getLocalData<Record<string, Comment[]>>(LOCAL_COMMENTS_KEY, {});
   return allComments[postId] || [];
 }
 
 export async function addComment(postId: string, userId: string, content: string): Promise<Comment> {
-  const users = getLocalData<UserProfile[]>(LOCAL_USERS_KEY, DEMO_USERS);
-  const author = users.find((u) => u.id === userId) || users[0];
+  const users = getLocalData<UserProfile[]>(LOCAL_USERS_KEY, []);
+  const author = users.find((u) => u.id === userId) || {
+    id: userId,
+    username: 'user',
+    full_name: 'Pengguna',
+    avatar_url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200',
+    role: 'user',
+    created_at: new Date().toISOString(),
+  };
 
   const newComment: Comment = {
     id: `c_${Date.now()}`,
@@ -385,13 +332,13 @@ export async function addComment(postId: string, userId: string, content: string
     }
   }
 
-  const allComments = getLocalData<Record<string, Comment[]>>(LOCAL_COMMENTS_KEY, INITIAL_COMMENTS);
+  const allComments = getLocalData<Record<string, Comment[]>>(LOCAL_COMMENTS_KEY, {});
   const postComments = [...(allComments[postId] || []), newComment];
   allComments[postId] = postComments;
   setLocalData(LOCAL_COMMENTS_KEY, allComments);
 
   // Update post comment count
-  const posts = getLocalData<Post[]>(LOCAL_POSTS_KEY, INITIAL_POSTS);
+  const posts = getLocalData<Post[]>(LOCAL_POSTS_KEY, []);
   const updatedPosts = posts.map((p) => {
     if (p.id === postId) {
       return { ...p, comments_count: p.comments_count + 1 };
@@ -404,7 +351,7 @@ export async function addComment(postId: string, userId: string, content: string
 }
 
 export async function deleteComment(postId: string, commentId: string): Promise<boolean> {
-  const allComments = getLocalData<Record<string, Comment[]>>(LOCAL_COMMENTS_KEY, INITIAL_COMMENTS);
+  const allComments = getLocalData<Record<string, Comment[]>>(LOCAL_COMMENTS_KEY, {});
   if (allComments[postId]) {
     allComments[postId] = allComments[postId].filter((c) => c.id !== commentId);
     setLocalData(LOCAL_COMMENTS_KEY, allComments);
@@ -422,16 +369,16 @@ export async function fetchUsers(): Promise<UserProfile[]> {
     }
   }
 
-  return getLocalData<UserProfile[]>(LOCAL_USERS_KEY, DEMO_USERS);
+  return getLocalData<UserProfile[]>(LOCAL_USERS_KEY, []);
 }
 
 export async function toggleUserRole(userId: string): Promise<UserProfile | null> {
-  const users = getLocalData<UserProfile[]>(LOCAL_USERS_KEY, DEMO_USERS);
+  const users = getLocalData<UserProfile[]>(LOCAL_USERS_KEY, []);
   let updatedUser: UserProfile | null = null;
 
   const newUsers = users.map((u) => {
     if (u.id === userId) {
-      updatedUser = { ...u, role: u.role === 'admin' ? 'user' : 'admin' };
+      updatedUser = { ...u, role: (u.role === 'admin' ? 'user' : 'admin') as 'user' | 'admin' };
       return updatedUser;
     }
     return u;
@@ -451,7 +398,7 @@ export async function toggleUserRole(userId: string): Promise<UserProfile | null
 }
 
 export async function toggleBanUser(userId: string): Promise<UserProfile | null> {
-  const users = getLocalData<UserProfile[]>(LOCAL_USERS_KEY, DEMO_USERS);
+  const users = getLocalData<UserProfile[]>(LOCAL_USERS_KEY, []);
   let updatedUser: UserProfile | null = null;
 
   const newUsers = users.map((u) => {

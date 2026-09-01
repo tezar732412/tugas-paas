@@ -10,20 +10,19 @@ import LoginModal from '../components/LoginModal';
 import { Post, UserProfile } from '../lib/types';
 import {
   fetchPosts,
-  fetchUsers,
+  getCurrentUser,
+  logoutUser,
   createPost,
   updatePost,
   deletePost,
   toggleLikePost,
-  DEMO_USERS,
 } from '../lib/store';
 import { Search, Sparkles, TrendingUp, Flame, Camera, Layers, ArrowUpRight, ShieldCheck } from 'lucide-react';
 
 const CATEGORIES = ['All', 'Photography', 'Nature', 'Urban', 'Architecture', 'Art', 'Travel', 'Tech'];
 
 export default function HomePage() {
-  const [allUsers, setAllUsers] = useState<UserProfile[]>(DEMO_USERS);
-  const [currentUser, setCurrentUser] = useState<UserProfile>(DEMO_USERS[1]);
+  const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -46,12 +45,12 @@ export default function HomePage() {
   const loadData = async () => {
     try {
       setLoading(true);
-      const [fetchedPosts, fetchedUsers] = await Promise.all([
+      const [fetchedPosts, user] = await Promise.all([
         fetchPosts(),
-        fetchUsers(),
+        getCurrentUser(),
       ]);
       setPosts(fetchedPosts);
-      setAllUsers(fetchedUsers);
+      setCurrentUser(user);
     } catch (err) {
       console.error(err);
     } finally {
@@ -59,7 +58,17 @@ export default function HomePage() {
     }
   };
 
+  const handleLogout = async () => {
+    await logoutUser();
+    setCurrentUser(null);
+  };
+
   const handleLikeToggle = async (postId: string) => {
+    if (!currentUser) {
+      setIsLoginModalOpen(true);
+      return;
+    }
+
     const res = await toggleLikePost(postId, currentUser.id);
     setPosts((prev) =>
       prev.map((p) =>
@@ -80,6 +89,11 @@ export default function HomePage() {
     postData: { title: string; description: string; category: string; image_url: string },
     imageFile?: File | null
   ) => {
+    if (!currentUser) {
+      setIsLoginModalOpen(true);
+      return;
+    }
+
     if (editingPost) {
       const updated = await updatePost(editingPost.id, postData);
       if (updated) {
@@ -127,11 +141,14 @@ export default function HomePage() {
       {/* Navigation Bar */}
       <Navbar
         currentUser={currentUser}
-        onSwitchUser={setCurrentUser}
-        allUsers={allUsers}
+        onLogout={handleLogout}
         onOpenUpload={() => {
-          setEditingPost(null);
-          setIsUploadOpen(true);
+          if (!currentUser) {
+            setIsLoginModalOpen(true);
+          } else {
+            setEditingPost(null);
+            setIsUploadOpen(true);
+          }
         }}
         onOpenSupabaseModal={() => setIsSupabaseModalOpen(true)}
         onOpenLoginModal={() => setIsLoginModalOpen(true)}
@@ -159,8 +176,12 @@ export default function HomePage() {
               <div className="flex flex-wrap items-center gap-3 pt-2">
                 <button
                   onClick={() => {
-                    setEditingPost(null);
-                    setIsUploadOpen(true);
+                    if (!currentUser) {
+                      setIsLoginModalOpen(true);
+                    } else {
+                      setEditingPost(null);
+                      setIsUploadOpen(true);
+                    }
                   }}
                   className="px-6 py-3 rounded-xl text-xs font-bold text-white btn-primary cursor-pointer"
                 >
@@ -198,7 +219,7 @@ export default function HomePage() {
                     </div>
                     <h3 className="text-base font-bold text-white truncate">{featuredPost.title}</h3>
                     <p className="text-xs text-slate-300 truncate">
-                      Oleh @{featuredPost.author?.username} • ❤️ {featuredPost.likes_count} Likes
+                      Oleh @{featuredPost.author?.username || 'user'} • ❤️ {featuredPost.likes_count} Likes
                     </p>
                   </div>
                 </div>
@@ -313,16 +334,20 @@ export default function HomePage() {
           ) : filteredPosts.length === 0 ? (
             <div className="glass-card rounded-3xl p-12 text-center border border-slate-200 bg-white space-y-3 shadow-sm">
               <Camera className="w-12 h-12 text-slate-400 mx-auto" />
-              <h3 className="text-base font-extrabold text-slate-900">Tidak ada foto ditemukan</h3>
+              <h3 className="text-base font-extrabold text-slate-900">Belum ada foto diunggah</h3>
               <p className="text-xs text-slate-500 max-w-sm mx-auto font-medium">
-                Coba ubah kata kunci pencarian atau unggah foto baru ke platform.
+                Jadilah yang pertama mengunggah foto ke platform PicPulse!
               </p>
               <button
                 onClick={() => {
-                  setEditingPost(null);
-                  setIsUploadOpen(true);
+                  if (!currentUser) {
+                    setIsLoginModalOpen(true);
+                  } else {
+                    setEditingPost(null);
+                    setIsUploadOpen(true);
+                  }
                 }}
-                className="px-5 py-2.5 rounded-xl text-xs font-bold text-white btn-primary"
+                className="px-5 py-2.5 rounded-xl text-xs font-bold text-white btn-primary cursor-pointer"
               >
                 + Upload Foto Sekarang
               </button>
@@ -354,6 +379,7 @@ export default function HomePage() {
         onClose={() => setIsUploadOpen(false)}
         currentUser={currentUser}
         editingPost={editingPost}
+        onOpenLoginModal={() => setIsLoginModalOpen(true)}
         onSubmitPost={handleSubmitPost}
       />
 
@@ -361,6 +387,7 @@ export default function HomePage() {
         post={selectedPost}
         onClose={() => setSelectedPost(null)}
         currentUser={currentUser}
+        onOpenLoginModal={() => setIsLoginModalOpen(true)}
         onLikeToggle={handleLikeToggle}
         onDeletePost={handleDeletePost}
       />

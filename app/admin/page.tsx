@@ -13,19 +13,20 @@ import {
   fetchPosts,
   fetchUsers,
   fetchSystemStats,
+  getCurrentUser,
+  logoutUser,
   createPost,
   updatePost,
   deletePost,
   toggleUserRole,
   toggleBanUser,
-  DEMO_USERS,
 } from '../../lib/store';
 import { isSupabaseConfigured } from '../../lib/supabase/client';
-import { Shield, Database, Users, Image as ImageIcon, Heart, HardDrive, Layers, Settings, Lock, ArrowRight, UserCheck } from 'lucide-react';
+import { Shield, Database, Users, Image as ImageIcon, Heart, HardDrive, Layers, Settings, Lock, LogIn } from 'lucide-react';
 
 export default function AdminDashboardPage() {
-  const [allUsers, setAllUsers] = useState<UserProfile[]>(DEMO_USERS);
-  const [currentUser, setCurrentUser] = useState<UserProfile>(DEMO_USERS[0]); // Default Alex (Admin)
+  const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
+  const [allUsers, setAllUsers] = useState<UserProfile[]>([]);
   const [posts, setPosts] = useState<Post[]>([]);
   const [stats, setStats] = useState<SystemStats | null>(null);
   const [activeTab, setActiveTab] = useState<'content' | 'users' | 'system'>('content');
@@ -45,19 +46,26 @@ export default function AdminDashboardPage() {
   const loadData = async () => {
     try {
       setLoading(true);
-      const [fetchedPosts, fetchedUsers, sysStats] = await Promise.all([
+      const [fetchedPosts, fetchedUsers, sysStats, user] = await Promise.all([
         fetchPosts(),
         fetchUsers(),
         fetchSystemStats(),
+        getCurrentUser(),
       ]);
       setPosts(fetchedPosts);
       setAllUsers(fetchedUsers);
       setStats(sysStats);
+      setCurrentUser(user);
     } catch (err) {
       console.error(err);
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleLogout = async () => {
+    await logoutUser();
+    setCurrentUser(null);
   };
 
   const handleDeletePost = async (postId: string) => {
@@ -95,6 +103,8 @@ export default function AdminDashboardPage() {
     postData: { title: string; description: string; category: string; image_url: string },
     imageFile?: File | null
   ) => {
+    if (!currentUser) return;
+
     if (editingPost) {
       const updated = await updatePost(editingPost.id, postData);
       if (updated) {
@@ -114,17 +124,20 @@ export default function AdminDashboardPage() {
   };
 
   // Strict Access Guard for Non-Admin Users
-  const isAccessDenied = currentUser.role !== 'admin';
+  const isAccessDenied = !currentUser || currentUser.role !== 'admin';
 
   return (
     <div className="min-h-screen flex flex-col pb-16">
       <Navbar
         currentUser={currentUser}
-        onSwitchUser={setCurrentUser}
-        allUsers={allUsers}
+        onLogout={handleLogout}
         onOpenUpload={() => {
-          setEditingPost(null);
-          setIsUploadOpen(true);
+          if (!currentUser) {
+            setIsLoginModalOpen(true);
+          } else {
+            setEditingPost(null);
+            setIsUploadOpen(true);
+          }
         }}
         onOpenSupabaseModal={() => setIsSupabaseModalOpen(true)}
         onOpenLoginModal={() => setIsLoginModalOpen(true)}
@@ -132,8 +145,8 @@ export default function AdminDashboardPage() {
 
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 pt-6 space-y-8">
         {isAccessDenied ? (
-          /* Access Restricted View for Regular Users */
-          <section className="glass-card rounded-3xl p-8 sm:p-12 text-center border border-slate-200 bg-white shadow-xl max-w-2xl mx-auto my-12 space-y-5">
+          /* Access Restricted View for Non-Admin / Guests */
+          <section className="glass-card rounded-3xl p-8 sm:p-12 text-center border border-slate-200 bg-white shadow-xl max-w-lg mx-auto my-12 space-y-4">
             <div className="p-4 rounded-2xl bg-purple-50 text-purple-600 border border-purple-200 w-fit mx-auto">
               <Lock className="w-10 h-10" />
             </div>
@@ -143,27 +156,22 @@ export default function AdminDashboardPage() {
                 Akses Terbatas
               </span>
               <h1 className="text-2xl font-extrabold text-slate-900">
-                Halaman Ini Khusus Administrator
+                Khusus Administrator
               </h1>
               <p className="text-xs text-slate-600 font-medium max-w-md mx-auto leading-relaxed">
-                Anda saat ini masuk sebagai <strong className="text-indigo-600">@{currentUser.username} ({currentUser.role})</strong>. Halaman ini memerlukan hak akses role <strong>Admin</strong> untuk moderasi konten dan pengguna.
+                {currentUser
+                  ? `Akun Anda (@${currentUser.username}) tidak memiliki hak akses administrator.`
+                  : 'Silakan masuk dengan akun Administrator Anda untuk membuka portal moderasi.'}
               </p>
             </div>
 
-            <div className="pt-4 flex flex-col sm:flex-row items-center justify-center gap-3">
-              <button
-                onClick={() => setCurrentUser(DEMO_USERS[0])}
-                className="w-full sm:w-auto px-6 py-3 rounded-xl text-xs font-bold text-white btn-primary flex items-center justify-center gap-2 cursor-pointer"
-              >
-                <UserCheck className="w-4 h-4" />
-                <span>Masuk sebagai Admin (Alex Rivera)</span>
-              </button>
-
+            <div className="pt-2">
               <button
                 onClick={() => setIsLoginModalOpen(true)}
-                className="w-full sm:w-auto px-5 py-3 rounded-xl text-xs font-bold text-slate-700 bg-slate-100 border border-slate-200 hover:bg-slate-200 transition-colors cursor-pointer"
+                className="px-6 py-3 rounded-xl text-xs font-bold text-white btn-primary flex items-center justify-center gap-2 mx-auto cursor-pointer"
               >
-                Form Login Lainnya
+                <LogIn className="w-4 h-4" />
+                <span>Masuk sebagai Admin</span>
               </button>
             </div>
           </section>
@@ -368,6 +376,7 @@ export default function AdminDashboardPage() {
         onClose={() => setIsUploadOpen(false)}
         currentUser={currentUser}
         editingPost={editingPost}
+        onOpenLoginModal={() => setIsLoginModalOpen(true)}
         onSubmitPost={handleSubmitPost}
       />
 
@@ -375,7 +384,12 @@ export default function AdminDashboardPage() {
         post={selectedPost}
         onClose={() => setSelectedPost(null)}
         currentUser={currentUser}
+        onOpenLoginModal={() => setIsLoginModalOpen(true)}
         onLikeToggle={async (postId) => {
+          if (!currentUser) {
+            setIsLoginModalOpen(true);
+            return;
+          }
           setPosts((prev) =>
             prev.map((p) =>
               p.id === postId

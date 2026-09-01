@@ -1,14 +1,15 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { X, Heart, MessageCircle, Send, Trash2, Shield, Calendar } from 'lucide-react';
+import { X, Heart, MessageCircle, Send, Trash2, Shield, Calendar, LogIn } from 'lucide-react';
 import { Post, UserProfile, Comment } from '../lib/types';
 import { fetchComments, addComment, deleteComment } from '../lib/store';
 
 interface PhotoDetailModalProps {
   post: Post | null;
   onClose: () => void;
-  currentUser: UserProfile;
+  currentUser: UserProfile | null;
+  onOpenLoginModal?: () => void;
   onLikeToggle: (postId: string) => void;
   onDeletePost: (postId: string) => void;
 }
@@ -17,6 +18,7 @@ export default function PhotoDetailModal({
   post,
   onClose,
   currentUser,
+  onOpenLoginModal,
   onLikeToggle,
   onDeletePost,
 }: PhotoDetailModalProps) {
@@ -40,12 +42,17 @@ export default function PhotoDetailModal({
 
   if (!post) return null;
 
-  const isOwner = currentUser.id === post.user_id;
-  const isAdmin = currentUser.role === 'admin';
+  const isOwner = currentUser?.id === post.user_id;
+  const isAdmin = currentUser?.role === 'admin';
 
   const handleAddComment = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newComment.trim()) return;
+
+    if (!currentUser) {
+      onOpenLoginModal?.();
+      return;
+    }
 
     try {
       setSubmittingComment(true);
@@ -113,7 +120,7 @@ export default function PhotoDetailModal({
                         onClose();
                       }
                     }}
-                    className="p-2 rounded-xl text-rose-600 hover:bg-rose-50 transition-colors"
+                    className="p-2 rounded-xl text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
                     title="Hapus Post"
                   >
                     <Trash2 className="w-4 h-4" />
@@ -121,7 +128,7 @@ export default function PhotoDetailModal({
                 )}
                 <button
                   onClick={onClose}
-                  className="hidden md:flex p-2 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
+                  className="hidden md:flex p-2 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
                 >
                   <X className="w-5 h-5" />
                 </button>
@@ -152,7 +159,7 @@ export default function PhotoDetailModal({
               <div className="flex items-center gap-4 pt-2">
                 <button
                   onClick={() => onLikeToggle(post.id)}
-                  className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold border transition-all ${
+                  className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
                     post.is_liked
                       ? 'bg-rose-50 text-rose-600 border-rose-200'
                       : 'bg-slate-50 text-slate-600 border-slate-200 hover:text-rose-600'
@@ -184,7 +191,7 @@ export default function PhotoDetailModal({
               </div>
             ) : (
               comments.map((c) => {
-                const canDelete = currentUser.id === c.user_id || isAdmin;
+                const canDelete = currentUser?.id === c.user_id || isAdmin;
                 return (
                   <div
                     key={c.id}
@@ -214,7 +221,7 @@ export default function PhotoDetailModal({
                     {canDelete && (
                       <button
                         onClick={() => handleDeleteComment(c.id)}
-                        className="p-1 text-slate-400 hover:text-rose-600 transition-colors flex-shrink-0"
+                        className="p-1 text-slate-400 hover:text-rose-600 transition-colors flex-shrink-0 cursor-pointer"
                         title="Hapus Komentar"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
@@ -227,22 +234,35 @@ export default function PhotoDetailModal({
           </div>
 
           {/* Comment Form */}
-          <form onSubmit={handleAddComment} className="pt-3 border-t border-slate-100 flex gap-2">
-            <input
-              type="text"
-              placeholder="Tulis komentar kamu..."
-              value={newComment}
-              onChange={(e) => setNewComment(e.target.value)}
-              className="flex-1 px-4 py-2.5 text-xs rounded-xl glass-input"
-            />
-            <button
-              type="submit"
-              disabled={submittingComment || !newComment.trim()}
-              className="p-2.5 rounded-xl btn-primary text-white disabled:opacity-50 flex items-center justify-center cursor-pointer"
-            >
-              <Send className="w-4 h-4" />
-            </button>
-          </form>
+          {currentUser ? (
+            <form onSubmit={handleAddComment} className="pt-3 border-t border-slate-100 flex gap-2">
+              <input
+                type="text"
+                placeholder="Tulis komentar kamu..."
+                value={newComment}
+                onChange={(e) => setNewComment(e.target.value)}
+                className="flex-1 px-4 py-2.5 text-xs rounded-xl glass-input"
+              />
+              <button
+                type="submit"
+                disabled={submittingComment || !newComment.trim()}
+                className="p-2.5 rounded-xl btn-primary text-white disabled:opacity-50 flex items-center justify-center cursor-pointer"
+              >
+                <Send className="w-4 h-4" />
+              </button>
+            </form>
+          ) : (
+            <div className="pt-3 border-t border-slate-100 flex items-center justify-between p-2 rounded-xl bg-slate-50 border border-slate-200">
+              <span className="text-xs text-slate-500 font-medium">Ingin menulis komentar?</span>
+              <button
+                onClick={onOpenLoginModal}
+                className="px-3 py-1.5 rounded-lg text-xs font-bold text-white btn-primary flex items-center gap-1 cursor-pointer"
+              >
+                <LogIn className="w-3.5 h-3.5" />
+                <span>Masuk</span>
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </div>
