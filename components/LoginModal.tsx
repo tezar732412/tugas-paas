@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { X, Lock, Mail, User, ArrowRight, CheckCircle2, AlertCircle, ShieldAlert } from 'lucide-react';
+import { X, Lock, Mail, User, ArrowRight, CheckCircle2, AlertCircle } from 'lucide-react';
 import { UserProfile } from '../lib/types';
 import { setLocalAuthUser } from '../lib/store';
 import { isSupabaseConfigured, supabase } from '../lib/supabase/client';
@@ -64,7 +64,6 @@ export default function LoginModal({ isOpen, onClose, onLoginSuccess }: LoginMod
             const isRateLimit = errLower.includes('rate limit') || errLower.includes('exceeded') || error.status === 429;
 
             if (isRateLimit) {
-              // Create instant user session so registration NEVER blocks the user
               const user: UserProfile = {
                 id: `usr_${Date.now()}`,
                 username: cleanUsername,
@@ -131,26 +130,26 @@ export default function LoginModal({ isOpen, onClose, onLoginSuccess }: LoginMod
           }
 
           if (data.user) {
-            let profile: UserProfile | null = null;
+            let fetchedProfile: any = null;
             try {
               const { data: profileData } = await supabase
                 .from('profiles')
                 .select('*')
                 .eq('id', data.user.id)
                 .single();
-              profile = profileData as UserProfile;
+              fetchedProfile = profileData;
             } catch (pErr) {
               console.warn('Profile fetch error', pErr);
             }
 
-            const loggedInUser: UserProfile = profile || {
+            const loggedInUser: UserProfile = {
               id: data.user.id,
-              username: data.user.user_metadata?.username || cleanEmail.split('@')[0],
-              full_name: data.user.user_metadata?.full_name || cleanEmail.split('@')[0],
-              avatar_url: data.user.user_metadata?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${cleanEmail}`,
-              role: profile?.role || data.user.user_metadata?.role || 'user',
+              username: fetchedProfile?.username || data.user.user_metadata?.username || cleanEmail.split('@')[0],
+              full_name: fetchedProfile?.full_name || data.user.user_metadata?.full_name || cleanEmail.split('@')[0],
+              avatar_url: fetchedProfile?.avatar_url || data.user.user_metadata?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${cleanEmail}`,
+              role: (fetchedProfile?.role || data.user.user_metadata?.role || 'user') as 'user' | 'admin',
               created_at: data.user.created_at,
-              is_banned: false,
+              is_banned: Boolean(fetchedProfile?.is_banned),
             };
 
             setLocalAuthUser(loggedInUser);
@@ -179,7 +178,6 @@ export default function LoginModal({ isOpen, onClose, onLoginSuccess }: LoginMod
       const msg = err?.message || '';
 
       if (msg.toLowerCase().includes('rate limit') || msg.toLowerCase().includes('exceeded')) {
-        // Fallback login directly
         const user: UserProfile = {
           id: `usr_${Date.now()}`,
           username: cleanUsername,
