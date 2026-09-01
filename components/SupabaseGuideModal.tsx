@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { X, Database, CheckCircle2, AlertTriangle, Code2, Server, Rocket } from 'lucide-react';
+import { X, Database, CheckCircle2, AlertTriangle, Code2, Server, Rocket, ShieldAlert, Sparkles } from 'lucide-react';
 import { isSupabaseConfigured } from '../lib/supabase/client';
 
 interface SupabaseGuideModalProps {
@@ -42,39 +42,28 @@ export default function SupabaseGuideModal({ isOpen, onClose }: SupabaseGuideMod
 
           <button
             onClick={onClose}
-            className="p-2 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
+            className="p-2 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Content Body */}
-        <div className="p-6 overflow-y-auto space-y-6 text-xs text-slate-700">
-          {/* Status Box */}
-          <div className={`p-4 rounded-2xl border ${
-            isSupabaseConfigured 
-              ? 'bg-emerald-50 border-emerald-200 text-emerald-900' 
-              : 'bg-amber-50 border-amber-200 text-amber-900'
-          }`}>
-            <div className="flex items-start gap-3">
-              {isSupabaseConfigured ? (
-                <CheckCircle2 className="w-5 h-5 text-emerald-600 flex-shrink-0 mt-0.5" />
-              ) : (
-                <AlertTriangle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
-              )}
-              <div>
-                <h4 className="font-extrabold text-sm">
-                  {isSupabaseConfigured
-                    ? 'Selamat! Kunci API Supabase Terdeteksi.'
-                    : 'Aplikasi Berjalan dalam Demo Mode (Local Storage)'}
-                </h4>
-                <p className="mt-1 text-slate-700 font-medium">
-                  {isSupabaseConfigured
-                    ? 'Aplikasi terintegrasi secara langsung dengan Supabase PostgreSQL & Storage API.'
-                    : 'Aplikasi dapat diuji sepenuhnya secara interaktif tanpa Supabase! Untuk mengaktifkan Supabase live, ikuti 3 langkah sederhana di bawah.'}
-                </p>
-              </div>
+        <div className="p-6 overflow-y-auto space-y-5 text-xs text-slate-700">
+          {/* Important Tip: Email Rate Limit & Confirm Email */}
+          <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200 text-amber-900 space-y-2">
+            <div className="flex items-center gap-2 font-bold text-amber-800 text-sm">
+              <ShieldAlert className="w-4 h-4 text-amber-600" />
+              <span>PENTING: Mengatasi &quot;Email rate limit exceeded&quot;</span>
             </div>
+            <p className="leading-relaxed font-medium">
+              Supabase bawaan membatasi pengiriman email konfirmasi (hanya 3-4 email per jam pada paket gratis). Agar pendaftaran akun dapat langsung login seketika tanpa batasan rate limit:
+            </p>
+            <ol className="list-decimal list-inside space-y-1 font-semibold text-amber-950 pl-1">
+              <li>Buka <a href="https://supabase.com/dashboard" target="_blank" rel="noreferrer" className="text-indigo-600 underline">Supabase Dashboard</a> proyek Anda.</li>
+              <li>Pilih menu <strong>Authentication</strong> → <strong>Providers</strong> → klik <strong>Email</strong>.</li>
+              <li>Hilangkan centang (Uncheck) pada opsi <strong>&quot;Confirm email&quot;</strong> lalu klik <strong>Save</strong>.</li>
+            </ol>
           </div>
 
           {/* Step 1: Schema */}
@@ -84,7 +73,7 @@ export default function SupabaseGuideModal({ isOpen, onClose }: SupabaseGuideMod
               <span>Langkah 1: Setup Database & Storage di Supabase</span>
             </div>
             <p className="text-slate-700 font-medium">
-              Buka <a href="https://supabase.com/dashboard" target="_blank" rel="noreferrer" className="text-indigo-600 underline font-bold">Supabase Dashboard</a>, masuk ke menu <strong>SQL Editor</strong>, lalu salin dan jalankan skrip dari file:
+              Buka <strong>SQL Editor</strong> di Supabase Dashboard, lalu jalankan seluruh isi file:
             </p>
             <div className="p-2.5 rounded-xl bg-slate-900 font-mono text-[11px] text-emerald-400 border border-slate-700 font-bold">
               supabase/schema.sql
@@ -116,10 +105,10 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOi...`}
               <span>Langkah 3: Deploy ke Vercel (Real Production)</span>
             </div>
             <ol className="list-decimal list-inside space-y-1.5 text-slate-700 font-medium pl-1">
-              <li>Push repository ini ke GitHub / GitLab / Bitbucket.</li>
+              <li>Push repository ini ke GitHub.</li>
               <li>Impor proyek ke Dashboard <a href="https://vercel.com/new" target="_blank" rel="noreferrer" className="text-rose-600 underline font-bold">Vercel.com</a>.</li>
               <li>Di bagian <strong>Environment Variables</strong> di Vercel, tambahkan <code className="text-rose-700 font-bold">NEXT_PUBLIC_SUPABASE_URL</code> dan <code className="text-rose-700 font-bold">NEXT_PUBLIC_SUPABASE_ANON_KEY</code>.</li>
-              <li>Klik <strong>Deploy</strong>. Proyek akan online dalam hitungan detik!</li>
+              <li>Klik <strong>Deploy</strong>.</li>
             </ol>
           </div>
         </div>
