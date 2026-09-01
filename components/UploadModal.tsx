@@ -91,7 +91,6 @@ export default function UploadModal({
       setErrorMsg('');
 
       let finalUrl = imageUrl;
-      // If user uploaded a file in local mode without Supabase, convert to Data URL for instant rendering
       if (selectedFile && !isSupabaseConfigured) {
         finalUrl = await new Promise<string>((resolve) => {
           const reader = new FileReader();
@@ -120,19 +119,19 @@ export default function UploadModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-fade-in">
-      <div className="glass-panel w-full max-w-2xl rounded-3xl border border-white/15 overflow-hidden shadow-2xl animate-slide-up flex flex-col max-h-[90vh]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md animate-fade-in">
+      <div className="glass-card w-full max-w-2xl rounded-3xl border border-slate-200 shadow-2xl animate-slide-up flex flex-col max-h-[90vh] bg-white">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-white/10">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-slate-50/50">
           <div className="flex items-center gap-2.5">
-            <div className="p-2 rounded-xl bg-indigo-600/30 text-indigo-400 border border-indigo-500/30">
+            <div className="p-2 rounded-xl bg-indigo-50 text-indigo-600 border border-indigo-200">
               <Sparkles className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="text-lg font-bold text-slate-100">
+              <h2 className="text-lg font-extrabold text-slate-900">
                 {editingPost ? 'Edit Informasi Foto' : 'Upload Foto Baru'}
               </h2>
-              <p className="text-xs text-slate-400">
+              <p className="text-xs text-slate-500">
                 {isSupabaseConfigured
                   ? 'Foto akan tersimpan langsung di Supabase Storage & Database'
                   : 'Berjalan di Demo Mode. Foto disimpan di Local State'}
@@ -141,7 +140,7 @@ export default function UploadModal({
           </div>
           <button
             onClick={onClose}
-            className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-white/10 transition-colors"
+            className="p-2 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
           >
             <X className="w-5 h-5" />
           </button>
@@ -150,7 +149,7 @@ export default function UploadModal({
         {/* Form Body */}
         <form onSubmit={handleSubmit} className="p-6 overflow-y-auto space-y-5">
           {errorMsg && (
-            <div className="flex items-center gap-2 p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs">
+            <div className="flex items-center gap-2 p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-bold">
               <AlertCircle className="w-4 h-4 flex-shrink-0" />
               <span>{errorMsg}</span>
             </div>
@@ -159,12 +158,12 @@ export default function UploadModal({
           {/* Image Upload Area */}
           {!editingPost && (
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-2">
+              <label className="block text-xs font-bold text-slate-700 mb-2">
                 Pilih Foto
               </label>
-              <div className="relative border-2 border-dashed border-white/15 hover:border-indigo-500/50 rounded-2xl p-6 text-center transition-colors bg-slate-900/40">
+              <div className="relative border-2 border-dashed border-slate-300 hover:border-indigo-500 rounded-2xl p-6 text-center transition-colors bg-slate-50">
                 {previewUrl ? (
-                  <div className="relative aspect-video w-full max-h-56 rounded-xl overflow-hidden mx-auto bg-slate-950">
+                  <div className="relative aspect-video w-full max-h-56 rounded-xl overflow-hidden mx-auto bg-slate-900">
                     <img
                       src={previewUrl}
                       alt="Preview"
@@ -184,11 +183,11 @@ export default function UploadModal({
                   </div>
                 ) : (
                   <label className="flex flex-col items-center justify-center cursor-pointer">
-                    <UploadCloud className="w-10 h-10 text-indigo-400 mb-2 animate-bounce" />
-                    <span className="text-sm font-semibold text-slate-200">
+                    <UploadCloud className="w-10 h-10 text-indigo-600 mb-2 animate-bounce" />
+                    <span className="text-sm font-bold text-slate-900">
                       Klik untuk memilih file foto
                     </span>
-                    <span className="text-xs text-slate-400 mt-1">
+                    <span className="text-xs text-slate-500 mt-1">
                       Format PNG, JPG, WEBP hingga 10MB
                     </span>
                     <input
@@ -203,7 +202,7 @@ export default function UploadModal({
 
               {/* Alternative Image URL Input */}
               <div className="mt-3">
-                <p className="text-[11px] text-slate-400 mb-1">
+                <p className="text-[11px] font-semibold text-slate-500 mb-1">
                   Atau gunakan URL Gambar eksternal (Unsplash, Imgur, dsb):
                 </p>
                 <div className="relative">
@@ -226,8 +225,8 @@ export default function UploadModal({
 
           {/* Title Input */}
           <div>
-            <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-              Judul Foto <span className="text-indigo-400">*</span>
+            <label className="block text-xs font-bold text-slate-700 mb-1.5">
+              Judul Foto <span className="text-indigo-600">*</span>
             </label>
             <input
               type="text"
@@ -241,7 +240,7 @@ export default function UploadModal({
 
           {/* Category Dropdown */}
           <div>
-            <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+            <label className="block text-xs font-bold text-slate-700 mb-1.5">
               Kategori
             </label>
             <div className="flex flex-wrap gap-2">
@@ -250,10 +249,10 @@ export default function UploadModal({
                   type="button"
                   key={cat}
                   onClick={() => setCategory(cat)}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-medium transition-all ${
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                     category === cat
                       ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30'
-                      : 'bg-slate-800/80 text-slate-400 border border-white/10 hover:text-white'
+                      : 'bg-slate-100 text-slate-700 border border-slate-200 hover:bg-slate-200'
                   }`}
                 >
                   {cat}
@@ -264,7 +263,7 @@ export default function UploadModal({
 
           {/* Description Input */}
           <div>
-            <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+            <label className="block text-xs font-bold text-slate-700 mb-1.5">
               Deskripsi / Cerita Foto
             </label>
             <textarea
@@ -277,18 +276,18 @@ export default function UploadModal({
           </div>
 
           {/* Submit Button */}
-          <div className="flex items-center justify-end gap-3 pt-3 border-t border-white/10">
+          <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-300 hover:bg-white/10 transition-colors"
+              className="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100 transition-colors"
             >
               Batal
             </button>
             <button
               type="submit"
               disabled={isSubmitting}
-              className="flex items-center gap-2 px-6 py-2.5 rounded-xl text-xs font-bold text-white btn-gradient disabled:opacity-50 cursor-pointer"
+              className="flex items-center gap-2 px-6 py-2.5 rounded-xl text-xs font-bold text-white btn-primary disabled:opacity-50 cursor-pointer"
             >
               {isSubmitting ? (
                 <>

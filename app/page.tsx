@@ -135,21 +135,21 @@ export default function HomePage() {
       />
 
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 pt-8 space-y-12">
-        {/* Asymmetric Hero Showcase */}
-        <section className="glass-card rounded-3xl p-6 sm:p-10 border border-white/10 relative overflow-hidden">
+        {/* Asymmetric Hero Showcase - Day Theme */}
+        <section className="glass-card rounded-3xl p-6 sm:p-10 border border-slate-200/80 bg-white/90 relative overflow-hidden shadow-lg">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
             {/* Left Content */}
             <div className="lg:col-span-7 space-y-5">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/30 text-indigo-300 text-xs font-semibold">
-                <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-50 border border-indigo-200 text-indigo-700 text-xs font-bold">
+                <Sparkles className="w-3.5 h-3.5 text-indigo-600" />
                 <span>Next.js 15 + Supabase Realtime Storage</span>
               </div>
 
-              <h1 className="text-3xl sm:text-5xl font-extrabold text-slate-100 tracking-tight leading-tight">
+              <h1 className="text-3xl sm:text-5xl font-extrabold text-slate-900 tracking-tight leading-tight">
                 Galeri Visual Presisi untuk <span className="text-gradient">Kreator Foto</span>
               </h1>
 
-              <p className="text-sm text-slate-300 leading-relaxed max-w-[55ch]">
+              <p className="text-sm text-slate-600 leading-relaxed max-w-[55ch] font-medium">
                 Unggah karya fotografi resolusi tinggi, kelola postingan secara dinamis, dan atur hak akses admin secara instan.
               </p>
 
@@ -166,9 +166,9 @@ export default function HomePage() {
 
                 <button
                   onClick={() => setIsSupabaseModalOpen(true)}
-                  className="px-5 py-3 rounded-xl text-xs font-semibold text-slate-200 bg-slate-900/80 border border-white/10 hover:bg-slate-800 transition-all cursor-pointer flex items-center gap-2"
+                  className="px-5 py-3 rounded-xl text-xs font-bold text-slate-700 bg-slate-100 border border-slate-200 hover:bg-slate-200 transition-all cursor-pointer flex items-center gap-2"
                 >
-                  <ShieldCheck className="w-4 h-4 text-emerald-400" />
+                  <ShieldCheck className="w-4 h-4 text-emerald-600" />
                   <span>Panduan Supabase</span>
                 </button>
               </div>
@@ -179,7 +179,7 @@ export default function HomePage() {
               <div className="lg:col-span-5">
                 <div
                   onClick={() => setSelectedPost(featuredPost)}
-                  className="group relative rounded-2xl overflow-hidden cursor-pointer border border-white/15 shadow-2xl bg-slate-950 aspect-[4/3]"
+                  className="group relative rounded-2xl overflow-hidden cursor-pointer border border-slate-200 shadow-xl bg-slate-950 aspect-[4/3]"
                 >
                   <img
                     src={featuredPost.image_url}
@@ -204,50 +204,50 @@ export default function HomePage() {
           </div>
         </section>
 
-        {/* Bento Grid Features */}
+        {/* Bento Grid Features - Day Theme */}
         <section className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="glass-card rounded-3xl p-6 border border-white/10 space-y-2 hover:border-indigo-500/30 transition-colors">
-            <div className="p-3 rounded-2xl bg-indigo-500/15 text-indigo-400 w-fit">
+          <div className="glass-card rounded-3xl p-6 border border-slate-200/80 bg-white space-y-2 hover:border-indigo-300 transition-colors shadow-sm">
+            <div className="p-3 rounded-2xl bg-indigo-50 text-indigo-600 border border-indigo-200 w-fit">
               <Camera className="w-5 h-5" />
             </div>
-            <h3 className="text-base font-bold text-slate-100">Upload Foto Dinamis</h3>
-            <p className="text-xs text-slate-400 leading-relaxed">
+            <h3 className="text-base font-extrabold text-slate-900">Upload Foto Dinamis</h3>
+            <p className="text-xs text-slate-600 leading-relaxed font-medium">
               Integrasi penuh dengan Supabase Storage Bucket `photos` & database PostgreSQL `posts`.
             </p>
           </div>
 
-          <div className="glass-card rounded-3xl p-6 border border-white/10 space-y-2 hover:border-emerald-500/30 transition-colors">
-            <div className="p-3 rounded-2xl bg-emerald-500/15 text-emerald-400 w-fit">
+          <div className="glass-card rounded-3xl p-6 border border-slate-200/80 bg-white space-y-2 hover:border-emerald-300 transition-colors shadow-sm">
+            <div className="p-3 rounded-2xl bg-emerald-50 text-emerald-600 border border-emerald-200 w-fit">
               <Layers className="w-5 h-5" />
             </div>
-            <h3 className="text-base font-bold text-slate-100">Full CRUD Operations</h3>
-            <p className="text-xs text-slate-400 leading-relaxed">
+            <h3 className="text-base font-extrabold text-slate-900">Full CRUD Operations</h3>
+            <p className="text-xs text-slate-600 leading-relaxed font-medium">
               Create, Read detail modal, Update judul & deskripsi, serta Delete postingan foto secara mandiri.
             </p>
           </div>
 
-          <div className="glass-card rounded-3xl p-6 border border-white/10 space-y-2 hover:border-cyan-500/30 transition-colors">
-            <div className="p-3 rounded-2xl bg-cyan-500/15 text-cyan-400 w-fit">
+          <div className="glass-card rounded-3xl p-6 border border-slate-200/80 bg-white space-y-2 hover:border-cyan-300 transition-colors shadow-sm">
+            <div className="p-3 rounded-2xl bg-cyan-50 text-cyan-600 border border-cyan-200 w-fit">
               <Sparkles className="w-5 h-5" />
             </div>
-            <h3 className="text-base font-bold text-slate-100">Admin Control Portal</h3>
-            <p className="text-xs text-slate-400 leading-relaxed">
+            <h3 className="text-base font-extrabold text-slate-900">Admin Control Portal</h3>
+            <p className="text-xs text-slate-600 leading-relaxed font-medium">
               Dashboard analitik khusus admin untuk moderasi postingan foto dan manajemen role pengguna.
             </p>
           </div>
         </section>
 
-        {/* Filter Bar */}
-        <section className="glass-card p-4 rounded-2xl border border-white/10 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
+        {/* Filter Bar - Day Theme */}
+        <section className="glass-card p-4 rounded-2xl border border-slate-200/80 bg-white flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4 shadow-sm">
           <div className="flex items-center gap-1.5 overflow-x-auto pb-2 md:pb-0 scrollbar-none">
             {CATEGORIES.map((cat) => (
               <button
                 key={cat}
                 onClick={() => setSelectedCategory(cat)}
-                className={`px-3.5 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all cursor-pointer ${
+                className={`px-3.5 py-1.5 rounded-xl text-xs font-extrabold whitespace-nowrap transition-all cursor-pointer ${
                   selectedCategory === cat
                     ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30'
-                    : 'text-slate-400 hover:text-slate-200 hover:bg-white/5'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
                 }`}
               >
                 {cat}
@@ -267,11 +267,11 @@ export default function HomePage() {
               />
             </div>
 
-            <div className="flex items-center p-1 rounded-xl bg-slate-950/80 border border-white/10">
+            <div className="flex items-center p-1 rounded-xl bg-slate-100 border border-slate-200">
               <button
                 onClick={() => setSortBy('latest')}
-                className={`p-1.5 rounded-lg text-xs font-semibold flex items-center gap-1 transition-all ${
-                  sortBy === 'latest' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-white'
+                className={`p-1.5 rounded-lg text-xs font-extrabold flex items-center gap-1 transition-all cursor-pointer ${
+                  sortBy === 'latest' ? 'bg-indigo-600 text-white' : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
                 <TrendingUp className="w-3.5 h-3.5" />
@@ -279,8 +279,8 @@ export default function HomePage() {
               </button>
               <button
                 onClick={() => setSortBy('popular')}
-                className={`p-1.5 rounded-lg text-xs font-semibold flex items-center gap-1 transition-all ${
-                  sortBy === 'popular' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-white'
+                className={`p-1.5 rounded-lg text-xs font-extrabold flex items-center gap-1 transition-all cursor-pointer ${
+                  sortBy === 'popular' ? 'bg-indigo-600 text-white' : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
                 <Flame className="w-3.5 h-3.5" />
@@ -293,10 +293,10 @@ export default function HomePage() {
         {/* Dynamic Photo Feed Grid */}
         <section className="space-y-6">
           <div className="flex items-center justify-between">
-            <h2 className="text-lg font-bold text-slate-100">
+            <h2 className="text-lg font-extrabold text-slate-900">
               Galeri Foto {selectedCategory !== 'All' && `• ${selectedCategory}`}
             </h2>
-            <span className="text-xs text-slate-400 font-medium">
+            <span className="text-xs text-slate-500 font-semibold">
               {filteredPosts.length} Foto Ditampilkan
             </span>
           </div>
@@ -304,14 +304,14 @@ export default function HomePage() {
           {loading ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {[1, 2, 3, 4, 5, 6].map((n) => (
-                <div key={n} className="glass-card rounded-3xl h-72 animate-pulse bg-slate-900/50" />
+                <div key={n} className="glass-card rounded-3xl h-72 animate-pulse bg-slate-100" />
               ))}
             </div>
           ) : filteredPosts.length === 0 ? (
-            <div className="glass-card rounded-3xl p-12 text-center border border-white/10 space-y-3">
-              <Camera className="w-12 h-12 text-slate-500 mx-auto" />
-              <h3 className="text-base font-bold text-slate-200">Tidak ada foto ditemukan</h3>
-              <p className="text-xs text-slate-400 max-w-sm mx-auto">
+            <div className="glass-card rounded-3xl p-12 text-center border border-slate-200 bg-white space-y-3 shadow-sm">
+              <Camera className="w-12 h-12 text-slate-400 mx-auto" />
+              <h3 className="text-base font-extrabold text-slate-900">Tidak ada foto ditemukan</h3>
+              <p className="text-xs text-slate-500 max-w-sm mx-auto font-medium">
                 Coba ubah kata kunci pencarian atau unggah foto baru ke platform.
               </p>
               <button

@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { UserProfile } from '../lib/types';
-import { Shield, ShieldAlert, UserCheck, UserX, Search } from 'lucide-react';
+import { Shield, UserCheck, UserX, Search } from 'lucide-react';
 
 interface AdminUserTableProps {
   users: UserProfile[];
@@ -24,11 +24,11 @@ export default function AdminUserTable({
   );
 
   return (
-    <div className="glass-panel rounded-3xl p-6 border border-white/10 space-y-4">
+    <div className="glass-card rounded-3xl p-6 border border-slate-200/80 bg-white space-y-4 shadow-sm">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <h3 className="text-base font-bold text-slate-100">Manajemen Pengguna & Akses Role</h3>
-          <p className="text-xs text-slate-400">Total {users.length} pengguna terdaftar</p>
+          <h3 className="text-base font-extrabold text-slate-900">Manajemen Pengguna & Akses Role</h3>
+          <p className="text-xs text-slate-500 font-semibold">Total {users.length} pengguna terdaftar</p>
         </div>
 
         <div className="relative w-full sm:w-64">
@@ -43,9 +43,9 @@ export default function AdminUserTable({
         </div>
       </div>
 
-      <div className="overflow-x-auto rounded-2xl border border-white/10">
-        <table className="w-full text-left text-xs text-slate-300">
-          <thead className="bg-slate-900/80 text-slate-400 font-semibold border-b border-white/10 uppercase tracking-wider">
+      <div className="overflow-x-auto rounded-2xl border border-slate-200">
+        <table className="w-full text-left text-xs text-slate-700">
+          <thead className="bg-slate-100 text-slate-800 font-extrabold border-b border-slate-200 uppercase tracking-wider">
             <tr>
               <th className="py-3.5 px-4">Pengguna</th>
               <th className="py-3.5 px-4">Username</th>
@@ -54,33 +54,33 @@ export default function AdminUserTable({
               <th className="py-3.5 px-4 text-right">Kelola Akses</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-white/5 bg-slate-950/40">
+          <tbody className="divide-y divide-slate-100 bg-white">
             {filteredUsers.map((u) => (
-              <tr key={u.id} className="hover:bg-white/5 transition-colors">
+              <tr key={u.id} className="hover:bg-slate-50 transition-colors">
                 <td className="py-3 px-4">
                   <div className="flex items-center gap-3">
                     <img
                       src={u.avatar_url}
                       alt={u.username}
-                      className="w-9 h-9 rounded-xl object-cover ring-1 ring-white/10"
+                      className="w-9 h-9 rounded-xl object-cover ring-1 ring-slate-200"
                     />
                     <div>
-                      <p className="font-bold text-slate-200">{u.full_name}</p>
-                      <p className="text-[10px] text-slate-400">
+                      <p className="font-extrabold text-slate-900">{u.full_name}</p>
+                      <p className="text-[10px] text-slate-500 font-semibold">
                         Bergabung {new Date(u.created_at).toLocaleDateString('id-ID')}
                       </p>
                     </div>
                   </div>
                 </td>
 
-                <td className="py-3 px-4 text-slate-300 font-mono text-xs">@{u.username}</td>
+                <td className="py-3 px-4 text-slate-700 font-mono text-xs font-bold">@{u.username}</td>
 
                 <td className="py-3 px-4">
                   <span
-                    className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-bold ${
+                    className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-extrabold ${
                       u.role === 'admin'
-                        ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30'
-                        : 'bg-slate-800 text-slate-400'
+                        ? 'bg-purple-50 text-purple-700 border border-purple-200'
+                        : 'bg-slate-100 text-slate-700 border border-slate-200'
                     }`}
                   >
                     <Shield className="w-3 h-3" />
@@ -90,11 +90,11 @@ export default function AdminUserTable({
 
                 <td className="py-3 px-4">
                   {u.is_banned ? (
-                    <span className="inline-flex items-center gap-1 text-rose-400 text-xs font-semibold">
+                    <span className="inline-flex items-center gap-1 text-rose-600 text-xs font-bold">
                       <UserX className="w-3.5 h-3.5" /> Banned
                     </span>
                   ) : (
-                    <span className="inline-flex items-center gap-1 text-emerald-400 text-xs font-semibold">
+                    <span className="inline-flex items-center gap-1 text-emerald-600 text-xs font-bold">
                       <UserCheck className="w-3.5 h-3.5" /> Aktif
                     </span>
                   )}
@@ -104,17 +104,17 @@ export default function AdminUserTable({
                   <div className="flex items-center justify-end gap-2">
                     <button
                       onClick={() => onToggleRole(u.id)}
-                      className="px-3 py-1.5 rounded-xl text-[11px] font-semibold bg-indigo-600/20 text-indigo-300 border border-indigo-500/30 hover:bg-indigo-600/40 transition-colors"
+                      className="px-3 py-1.5 rounded-xl text-[11px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200 hover:bg-indigo-100 transition-colors cursor-pointer"
                     >
                       Ubah Role
                     </button>
 
                     <button
                       onClick={() => onToggleBan(u.id)}
-                      className={`px-3 py-1.5 rounded-xl text-[11px] font-semibold transition-colors ${
+                      className={`px-3 py-1.5 rounded-xl text-[11px] font-bold transition-colors cursor-pointer ${
                         u.is_banned
-                          ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 hover:bg-emerald-500/30'
-                          : 'bg-rose-500/20 text-rose-300 border border-rose-500/30 hover:bg-rose-500/30'
+                          ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100'
+                          : 'bg-rose-50 text-rose-700 border border-rose-200 hover:bg-rose-100'
                       }`}
                     >
                       {u.is_banned ? 'Buka Suspend' : 'Suspend Akun'}

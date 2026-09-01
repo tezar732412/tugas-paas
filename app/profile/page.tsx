@@ -16,7 +16,7 @@ import {
   toggleLikePost,
   DEMO_USERS,
 } from '../../lib/store';
-import { Camera, Heart, MessageCircle, Shield, Sparkles, UserCheck, PlusCircle } from 'lucide-react';
+import { Camera, PlusCircle } from 'lucide-react';
 
 export default function ProfilePage() {
   const [allUsers, setAllUsers] = useState<UserProfile[]>(DEMO_USERS);
@@ -88,7 +88,6 @@ export default function ProfilePage() {
     setPosts((prev) => prev.filter((p) => p.id !== postId));
   };
 
-  // Filter posts owned by currentUser
   const userPosts = posts.filter((p) => p.user_id === currentUser.id);
   const totalLikes = userPosts.reduce((acc, p) => acc + p.likes_count, 0);
 
@@ -106,55 +105,52 @@ export default function ProfilePage() {
       />
 
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 pt-6 space-y-8">
-        {/* Profile Card Header */}
-        <section className="glass-panel rounded-3xl overflow-hidden border border-white/15 shadow-2xl relative">
-          {/* Cover Gradient */}
-          <div className="h-44 sm:h-56 bg-gradient-to-r from-indigo-900 via-purple-900 to-slate-900 relative">
-            <div className="absolute inset-0 bg-black/20" />
+        {/* Profile Card Header - Day Theme */}
+        <section className="glass-card rounded-3xl overflow-hidden border border-slate-200/80 bg-white shadow-md relative">
+          <div className="h-44 sm:h-56 bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-800 relative">
+            <div className="absolute inset-0 bg-black/10" />
           </div>
 
-          {/* Profile Details Container */}
           <div className="px-6 sm:px-8 pb-6 relative -mt-16 sm:-mt-20 flex flex-col sm:flex-row items-start sm:items-end justify-between gap-6">
             <div className="flex flex-col sm:flex-row items-start sm:items-end gap-5">
               <img
                 src={currentUser.avatar_url}
                 alt={currentUser.username}
-                className="w-28 h-28 sm:w-36 sm:h-36 rounded-3xl object-cover ring-4 ring-slate-950 shadow-2xl"
+                className="w-28 h-28 sm:w-36 sm:h-36 rounded-3xl object-cover ring-4 ring-white shadow-xl"
               />
 
               <div className="space-y-1">
                 <div className="flex items-center gap-2">
-                  <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-100">
+                  <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900">
                     {currentUser.full_name}
                   </h1>
                   <span
-                    className={`text-xs font-bold px-2.5 py-0.5 rounded-full ${
+                    className={`text-xs font-extrabold px-2.5 py-0.5 rounded-full ${
                       currentUser.role === 'admin'
-                        ? 'bg-purple-500/20 text-purple-300 border border-purple-500/40'
-                        : 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/40'
+                        ? 'bg-purple-100 text-purple-800 border border-purple-300'
+                        : 'bg-indigo-100 text-indigo-800 border border-indigo-300'
                     }`}
                   >
                     {currentUser.role.toUpperCase()}
                   </span>
                 </div>
-                <p className="text-sm text-slate-400 font-medium">@{currentUser.username}</p>
-                <p className="text-xs text-slate-400">
+                <p className="text-sm text-slate-600 font-bold">@{currentUser.username}</p>
+                <p className="text-xs text-slate-500 font-semibold">
                   Bergabung sejak {new Date(currentUser.created_at).toLocaleDateString('id-ID', { month: 'long', year: 'numeric' })}
                 </p>
               </div>
             </div>
 
-            {/* Quick Stats & Upload */}
             <div className="flex items-center gap-4 w-full sm:w-auto justify-between sm:justify-end">
-              <div className="flex items-center gap-4 bg-slate-900/80 p-3 rounded-2xl border border-white/10">
+              <div className="flex items-center gap-4 bg-slate-50 p-3 rounded-2xl border border-slate-200">
                 <div className="text-center px-2">
-                  <p className="text-base font-bold text-slate-100">{userPosts.length}</p>
-                  <p className="text-[10px] text-slate-400 uppercase font-semibold">Foto</p>
+                  <p className="text-base font-extrabold text-slate-900">{userPosts.length}</p>
+                  <p className="text-[10px] text-slate-500 uppercase font-extrabold">Foto</p>
                 </div>
-                <div className="h-8 w-px bg-white/10" />
+                <div className="h-8 w-px bg-slate-200" />
                 <div className="text-center px-2">
-                  <p className="text-base font-bold text-rose-400">{totalLikes}</p>
-                  <p className="text-[10px] text-slate-400 uppercase font-semibold">Likes</p>
+                  <p className="text-base font-extrabold text-rose-600">{totalLikes}</p>
+                  <p className="text-[10px] text-slate-500 uppercase font-extrabold">Likes</p>
                 </div>
               </div>
 
@@ -163,7 +159,7 @@ export default function ProfilePage() {
                   setEditingPost(null);
                   setIsUploadOpen(true);
                 }}
-                className="px-5 py-3 rounded-2xl text-xs font-bold text-white btn-gradient flex items-center gap-2 cursor-pointer"
+                className="px-5 py-3 rounded-2xl text-xs font-bold text-white btn-primary flex items-center gap-2 cursor-pointer"
               >
                 <PlusCircle className="w-4 h-4" />
                 <span>Upload</span>
@@ -172,11 +168,11 @@ export default function ProfilePage() {
           </div>
         </section>
 
-        {/* User's Uploaded Photos Section */}
+        {/* User's Uploaded Photos */}
         <section className="space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-xl font-bold text-slate-100 flex items-center gap-2">
-              <Camera className="w-5 h-5 text-indigo-400" />
+            <h2 className="text-lg font-extrabold text-slate-900 flex items-center gap-2">
+              <Camera className="w-5 h-5 text-indigo-600" />
               <span>Foto yang Diunggah ({userPosts.length})</span>
             </h2>
           </div>
@@ -184,14 +180,14 @@ export default function ProfilePage() {
           {loading ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {[1, 2, 3].map((n) => (
-                <div key={n} className="glass-panel rounded-3xl h-72 animate-pulse bg-slate-900/50" />
+                <div key={n} className="glass-card rounded-3xl h-72 animate-pulse bg-slate-100" />
               ))}
             </div>
           ) : userPosts.length === 0 ? (
-            <div className="glass-panel rounded-3xl p-12 text-center border border-white/10 space-y-3">
-              <Camera className="w-12 h-12 text-slate-500 mx-auto" />
-              <h3 className="text-base font-bold text-slate-200">Belum ada foto yang diunggah</h3>
-              <p className="text-xs text-slate-400 max-w-sm mx-auto">
+            <div className="glass-card rounded-3xl p-12 text-center border border-slate-200 bg-white space-y-3 shadow-sm">
+              <Camera className="w-12 h-12 text-slate-400 mx-auto" />
+              <h3 className="text-base font-extrabold text-slate-900">Belum ada foto yang diunggah</h3>
+              <p className="text-xs text-slate-500 max-w-sm mx-auto font-medium">
                 Unggah karya foto pertamamu sekarang untuk membagikannya dengan seluruh pengguna PicPulse.
               </p>
               <button
@@ -199,7 +195,7 @@ export default function ProfilePage() {
                   setEditingPost(null);
                   setIsUploadOpen(true);
                 }}
-                className="mt-2 px-5 py-2 rounded-xl text-xs font-bold text-white btn-gradient"
+                className="mt-2 px-5 py-2 rounded-xl text-xs font-bold text-white btn-primary"
               >
                 + Upload Foto Sekarang
               </button>
