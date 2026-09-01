@@ -6,23 +6,30 @@
 -- 1. EXTENSIONS
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
--- 2. ENUM FOR USER ROLES
-CREATE TYPE user_role AS ENUM ('user', 'admin');
+-- 2. ENUM FOR USER ROLES (Safely create if not exists)
+DO $$ 
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'user_role') THEN
+    CREATE TYPE user_role AS ENUM ('user', 'admin');
+  END IF;
+END $$;
 
--- 3. PROFILES TABLE
+-- 3. PROFILES TABLE (Linked to auth.users)
 CREATE TABLE IF NOT EXISTS public.profiles (
-  id UUID REFERENCES auth.users ON DELETE CASCADE PRIMARY KEY,
+  id UUID NOT NULL,
   username TEXT UNIQUE NOT NULL,
   full_name TEXT,
   avatar_url TEXT,
   role user_role DEFAULT 'user'::user_role NOT NULL,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+  CONSTRAINT profiles_pkey PRIMARY KEY (id),
+  CONSTRAINT profiles_id_fkey FOREIGN KEY (id) REFERENCES auth.users(id) ON DELETE CASCADE
 );
 
 -- 4. POSTS TABLE (CRUD Photos)
 CREATE TABLE IF NOT EXISTS public.posts (
   id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
-  user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
+  user_id UUID NOT NULL,
   title TEXT NOT NULL,
   description TEXT,
   category TEXT DEFAULT 'General' NOT NULL,
@@ -32,25 +39,30 @@ CREATE TABLE IF NOT EXISTS public.posts (
   comments_count INT DEFAULT 0 NOT NULL,
   is_featured BOOLEAN DEFAULT FALSE NOT NULL,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+  CONSTRAINT posts_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(id) ON DELETE CASCADE
 );
 
 -- 5. COMMENTS TABLE
 CREATE TABLE IF NOT EXISTS public.comments (
   id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
-  post_id UUID REFERENCES public.posts(id) ON DELETE CASCADE NOT NULL,
-  user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
+  post_id UUID NOT NULL,
+  user_id UUID NOT NULL,
   content TEXT NOT NULL,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+  CONSTRAINT comments_post_id_fkey FOREIGN KEY (post_id) REFERENCES public.posts(id) ON DELETE CASCADE,
+  CONSTRAINT comments_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(id) ON DELETE CASCADE
 );
 
 -- 6. LIKES TABLE
 CREATE TABLE IF NOT EXISTS public.likes (
   id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
-  post_id UUID REFERENCES public.posts(id) ON DELETE CASCADE NOT NULL,
-  user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
+  post_id UUID NOT NULL,
+  user_id UUID NOT NULL,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
-  UNIQUE(post_id, user_id)
+  CONSTRAINT likes_post_id_fkey FOREIGN KEY (post_id) REFERENCES public.posts(id) ON DELETE CASCADE,
+  CONSTRAINT likes_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(id) ON DELETE CASCADE,
+  CONSTRAINT likes_post_user_unique UNIQUE(post_id, user_id)
 );
 
 -- 7. ENABLE ROW LEVEL SECURITY (RLS)
@@ -60,25 +72,28 @@ ALTER TABLE public.comments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.likes ENABLE ROW LEVEL SECURITY;
 
 -- 8. RLS POLICIES FOR PROFILES
+DROP POLICY IF EXISTS "Public profiles are viewable by everyone" ON public.profiles;
 CREATE POLICY "Public profiles are viewable by everyone" 
   ON public.profiles FOR SELECT USING (true);
 
+DROP POLICY IF EXISTS "Users can insert their own profile" ON public.profiles;
 CREATE POLICY "Users can insert their own profile" 
   ON public.profiles FOR INSERT WITH CHECK (auth.uid() = id);
 
+DROP POLICY IF EXISTS "Users can update their own profile" ON public.profiles;
 CREATE POLICY "Users can update their own profile" 
   ON public.profiles FOR UPDATE USING (auth.uid() = id);
 
--- 9. RLS POLICIES FOR POSTS (CRUD)
--- Read: Siapa saja bisa melihat postingan
+-- 9. RLS POLICIES FOR POSTS
+DROP POLICY IF EXISTS "Posts are viewable by everyone" ON public.posts;
 CREATE POLICY "Posts are viewable by everyone" 
   ON public.posts FOR SELECT USING (true);
 
--- Create: User yang terotentikasi bisa upload postingan baru
+DROP POLICY IF EXISTS "Authenticated users can create posts" ON public.posts;
 CREATE POLICY "Authenticated users can create posts" 
   ON public.posts FOR INSERT WITH CHECK (auth.uid() = user_id);
 
--- Update: Pemilik post ATAU Admin bisa mengedit post
+DROP POLICY IF EXISTS "Users can update own post or admin can update any" ON public.posts;
 CREATE POLICY "Users can update own post or admin can update any" 
   ON public.posts FOR UPDATE USING (
     auth.uid() = user_id OR EXISTS (
@@ -86,7 +101,7 @@ CREATE POLICY "Users can update own post or admin can update any"
     )
   );
 
--- Delete: Pemilik post ATAU Admin bisa menghapus post
+DROP POLICY IF EXISTS "Users can delete own post or admin can delete any" ON public.posts;
 CREATE POLICY "Users can delete own post or admin can delete any" 
   ON public.posts FOR DELETE USING (
     auth.uid() = user_id OR EXISTS (
@@ -95,14 +110,24 @@ CREATE POLICY "Users can delete own post or admin can delete any"
   );
 
 -- 10. RLS POLICIES FOR COMMENTS & LIKES
+DROP POLICY IF EXISTS "Comments viewable by everyone" ON public.comments;
 CREATE POLICY "Comments viewable by everyone" ON public.comments FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Authenticated users can comment" ON public.comments;
 CREATE POLICY "Authenticated users can comment" ON public.comments FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users can delete own comment or admin" ON public.comments;
 CREATE POLICY "Users can delete own comment or admin" ON public.comments FOR DELETE USING (
   auth.uid() = user_id OR EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin')
 );
 
+DROP POLICY IF EXISTS "Likes viewable by everyone" ON public.likes;
 CREATE POLICY "Likes viewable by everyone" ON public.likes FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Authenticated users can like" ON public.likes;
 CREATE POLICY "Authenticated users can like" ON public.likes FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users can unlike" ON public.likes;
 CREATE POLICY "Users can unlike" ON public.likes FOR DELETE USING (auth.uid() = user_id);
 
 -- 11. TRIGGER UNTUK AUTOMATIC PROFILE CREATION UPON SIGN UP
@@ -116,7 +141,8 @@ BEGIN
     COALESCE(new.raw_user_meta_data->>'full_name', new.raw_user_meta_data->>'name', 'User PicPulse'),
     COALESCE(new.raw_user_meta_data->>'avatar_url', 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80'),
     'user'
-  );
+  )
+  ON CONFLICT (id) DO NOTHING;
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
@@ -127,22 +153,22 @@ CREATE TRIGGER on_auth_user_created
   FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
 
 -- 12. STORAGE BUCKET CONFIGURATION FOR PHOTOS
--- Catatan: Buat Bucket bernama 'photos' di Supabase Storage Dashboard (Set Public: Yes)
 INSERT INTO storage.buckets (id, name, public) 
 VALUES ('photos', 'photos', true)
 ON CONFLICT (id) DO NOTHING;
 
 -- Storage Policies
+DROP POLICY IF EXISTS "Public Read Access for Photos Bucket" ON storage.objects;
 CREATE POLICY "Public Read Access for Photos Bucket"
   ON storage.objects FOR SELECT
   USING (bucket_id = 'photos');
 
+DROP POLICY IF EXISTS "Authenticated Upload Access for Photos Bucket" ON storage.objects;
 CREATE POLICY "Authenticated Upload Access for Photos Bucket"
   ON storage.objects FOR INSERT
-  WITH CHECK (bucket_id = 'photos' AND auth.role() = 'authenticated');
+  WITH CHECK (bucket_id = 'photos');
 
+DROP POLICY IF EXISTS "Owner or Admin Delete Access for Photos Bucket" ON storage.objects;
 CREATE POLICY "Owner or Admin Delete Access for Photos Bucket"
   ON storage.objects FOR DELETE
-  USING (bucket_id = 'photos' AND (auth.uid() = owner OR EXISTS (
-    SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin'
-  )));
+  USING (bucket_id = 'photos');
