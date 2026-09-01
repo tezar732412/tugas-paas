@@ -6,6 +6,7 @@ import PhotoCard from '../components/PhotoCard';
 import UploadModal from '../components/UploadModal';
 import PhotoDetailModal from '../components/PhotoDetailModal';
 import SupabaseGuideModal from '../components/SupabaseGuideModal';
+import LoginModal from '../components/LoginModal';
 import { Post, UserProfile } from '../lib/types';
 import {
   fetchPosts,
@@ -36,6 +37,7 @@ export default function HomePage() {
   const [editingPost, setEditingPost] = useState<Post | null>(null);
   const [selectedPost, setSelectedPost] = useState<Post | null>(null);
   const [isSupabaseModalOpen, setIsSupabaseModalOpen] = useState(false);
+  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -132,6 +134,7 @@ export default function HomePage() {
           setIsUploadOpen(true);
         }}
         onOpenSupabaseModal={() => setIsSupabaseModalOpen(true)}
+        onOpenLoginModal={() => setIsLoginModalOpen(true)}
       />
 
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 pt-8 space-y-12">
@@ -365,6 +368,12 @@ export default function HomePage() {
       <SupabaseGuideModal
         isOpen={isSupabaseModalOpen}
         onClose={() => setIsSupabaseModalOpen(false)}
+      />
+
+      <LoginModal
+        isOpen={isLoginModalOpen}
+        onClose={() => setIsLoginModalOpen(false)}
+        onLoginSuccess={(u) => setCurrentUser(u)}
       />
     </div>
   );

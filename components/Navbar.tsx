@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Camera, Plus, Shield, User, Compass, Database, CheckCircle, AlertCircle, ChevronDown } from 'lucide-react';
+import { Camera, Plus, Shield, User, Compass, Database, CheckCircle, AlertCircle, ChevronDown, LogIn, LogOut } from 'lucide-react';
 import { UserProfile } from '../lib/types';
 import { isSupabaseConfigured } from '../lib/supabase/client';
 
@@ -13,6 +13,7 @@ interface NavbarProps {
   allUsers: UserProfile[];
   onOpenUpload: () => void;
   onOpenSupabaseModal: () => void;
+  onOpenLoginModal: () => void;
 }
 
 export default function Navbar({
@@ -21,6 +22,7 @@ export default function Navbar({
   allUsers,
   onOpenUpload,
   onOpenSupabaseModal,
+  onOpenLoginModal,
 }: NavbarProps) {
   const pathname = usePathname();
   const [showUserDropdown, setShowUserDropdown] = useState(false);
@@ -38,12 +40,12 @@ export default function Navbar({
               PicPulse
             </span>
             <span className="hidden sm:inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-slate-100 text-slate-700 border border-slate-200">
-              {currentUser.role === 'admin' ? 'Admin Portal' : 'Community'}
+              {currentUser.role === 'admin' ? 'Admin Mode' : 'User Mode'}
             </span>
           </div>
         </Link>
 
-        {/* Navigation Tabs */}
+        {/* Separated Navigation Links */}
         <nav className="hidden md:flex items-center gap-1 bg-slate-100/80 p-1 rounded-2xl border border-slate-200">
           <Link
             href="/"
@@ -69,17 +71,20 @@ export default function Navbar({
             <span>Profil Saya</span>
           </Link>
 
-          <Link
-            href="/admin"
-            className={`flex items-center gap-2 px-4 py-1.5 rounded-xl text-xs font-bold transition-all ${
-              pathname.startsWith('/admin')
-                ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/30'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
-            }`}
-          >
-            <Shield className="w-4 h-4 text-emerald-100" />
-            <span>Admin</span>
-          </Link>
+          {/* Admin Link appears ONLY if user is Admin */}
+          {currentUser.role === 'admin' && (
+            <Link
+              href="/admin"
+              className={`flex items-center gap-2 px-4 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                pathname.startsWith('/admin')
+                  ? 'bg-purple-600 text-white shadow-md shadow-purple-600/30'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
+              }`}
+            >
+              <Shield className="w-4 h-4 text-purple-200" />
+              <span>Portal Admin</span>
+            </Link>
+          )}
         </nav>
 
         {/* Actions */}
@@ -114,7 +119,17 @@ export default function Navbar({
             <span className="hidden sm:inline">Upload Foto</span>
           </button>
 
-          {/* Role Switcher */}
+          {/* Login Modal Opener Button */}
+          <button
+            onClick={onOpenLoginModal}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold text-slate-700 bg-slate-100 border border-slate-200 hover:bg-slate-200 transition-colors cursor-pointer"
+            title="Masuk / Ganti Akun"
+          >
+            <LogIn className="w-3.5 h-3.5 text-indigo-600" />
+            <span className="hidden lg:inline">Login</span>
+          </button>
+
+          {/* Current User Profile Pill */}
           <div className="relative">
             <button
               onClick={() => setShowUserDropdown(!showUserDropdown)}
@@ -128,6 +143,15 @@ export default function Navbar({
               <span className="hidden lg:inline text-xs font-bold text-slate-800">
                 {currentUser.username}
               </span>
+              <span
+                className={`text-[9px] font-extrabold px-1.5 py-0.5 rounded ${
+                  currentUser.role === 'admin'
+                    ? 'bg-purple-100 text-purple-800 border border-purple-300'
+                    : 'bg-slate-200 text-slate-700'
+                }`}
+              >
+                {currentUser.role.toUpperCase()}
+              </span>
               <ChevronDown className="w-3.5 h-3.5 text-slate-500" />
             </button>
 
@@ -135,35 +159,35 @@ export default function Navbar({
               <div className="absolute right-0 mt-2 w-64 glass-card rounded-2xl p-2 border border-slate-200 shadow-xl z-50 animate-slide-up bg-white">
                 <div className="px-3 py-2 border-b border-slate-100 mb-1">
                   <p className="text-[11px] font-extrabold text-slate-400 uppercase tracking-wider">
-                    Simulasi Pengguna / Role:
+                    Profil Aktif:
                   </p>
+                  <p className="text-xs font-extrabold text-slate-900 mt-0.5">{currentUser.full_name}</p>
+                  <p className="text-[10px] text-slate-500">@{currentUser.username} • Role: <span className="font-bold text-indigo-600">{currentUser.role}</span></p>
                 </div>
-                {allUsers.map((u) => (
+
+                <div className="p-1 space-y-1">
                   <button
-                    key={u.id}
                     onClick={() => {
-                      onSwitchUser(u);
+                      onOpenLoginModal();
                       setShowUserDropdown(false);
                     }}
-                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-all ${
-                      u.id === currentUser.id
-                        ? 'bg-indigo-50 border border-indigo-200 text-indigo-900 font-bold'
-                        : 'hover:bg-slate-50 text-slate-700'
-                    }`}
+                    className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold text-slate-700 hover:bg-indigo-50 hover:text-indigo-600 transition-colors text-left cursor-pointer"
                   >
-                    <img
-                      src={u.avatar_url}
-                      alt={u.username}
-                      className="w-8 h-8 rounded-lg object-cover"
-                    />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs font-bold truncate text-slate-900">{u.full_name}</p>
-                      <p className="text-[10px] text-slate-500 truncate">
-                        @{u.username} • <span className="text-indigo-600 font-bold">{u.role}</span>
-                      </p>
-                    </div>
+                    <LogIn className="w-4 h-4" />
+                    <span>Ganti Akun / Form Login</span>
                   </button>
-                ))}
+
+                  {currentUser.role === 'admin' && (
+                    <Link
+                      href="/admin"
+                      onClick={() => setShowUserDropdown(false)}
+                      className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold text-purple-700 bg-purple-50 hover:bg-purple-100 transition-colors text-left"
+                    >
+                      <Shield className="w-4 h-4" />
+                      <span>Buka Dashboard Admin</span>
+                    </Link>
+                  )}
+                </div>
               </div>
             )}
           </div>

@@ -7,6 +7,7 @@ import AdminUserTable from '../../components/AdminUserTable';
 import UploadModal from '../../components/UploadModal';
 import PhotoDetailModal from '../../components/PhotoDetailModal';
 import SupabaseGuideModal from '../../components/SupabaseGuideModal';
+import LoginModal from '../../components/LoginModal';
 import { Post, UserProfile, SystemStats } from '../../lib/types';
 import {
   fetchPosts,
@@ -20,11 +21,11 @@ import {
   DEMO_USERS,
 } from '../../lib/store';
 import { isSupabaseConfigured } from '../../lib/supabase/client';
-import { Shield, Database, Users, Image as ImageIcon, Heart, HardDrive, Layers, Settings } from 'lucide-react';
+import { Shield, Database, Users, Image as ImageIcon, Heart, HardDrive, Layers, Settings, Lock, ArrowRight, UserCheck } from 'lucide-react';
 
 export default function AdminDashboardPage() {
   const [allUsers, setAllUsers] = useState<UserProfile[]>(DEMO_USERS);
-  const [currentUser, setCurrentUser] = useState<UserProfile>(DEMO_USERS[0]);
+  const [currentUser, setCurrentUser] = useState<UserProfile>(DEMO_USERS[0]); // Default Alex (Admin)
   const [posts, setPosts] = useState<Post[]>([]);
   const [stats, setStats] = useState<SystemStats | null>(null);
   const [activeTab, setActiveTab] = useState<'content' | 'users' | 'system'>('content');
@@ -35,6 +36,7 @@ export default function AdminDashboardPage() {
   const [editingPost, setEditingPost] = useState<Post | null>(null);
   const [selectedPost, setSelectedPost] = useState<Post | null>(null);
   const [isSupabaseModalOpen, setIsSupabaseModalOpen] = useState(false);
+  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -111,6 +113,9 @@ export default function AdminDashboardPage() {
     }
   };
 
+  // Strict Access Guard for Non-Admin Users
+  const isAccessDenied = currentUser.role !== 'admin';
+
   return (
     <div className="min-h-screen flex flex-col pb-16">
       <Navbar
@@ -122,197 +127,239 @@ export default function AdminDashboardPage() {
           setIsUploadOpen(true);
         }}
         onOpenSupabaseModal={() => setIsSupabaseModalOpen(true)}
+        onOpenLoginModal={() => setIsLoginModalOpen(true)}
       />
 
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 pt-6 space-y-8">
-        {/* Admin Banner - Day Theme */}
-        <section className="glass-card rounded-3xl p-6 sm:p-8 border border-slate-200/80 bg-white shadow-md relative overflow-hidden">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-10">
+        {isAccessDenied ? (
+          /* Access Restricted View for Regular Users */
+          <section className="glass-card rounded-3xl p-8 sm:p-12 text-center border border-slate-200 bg-white shadow-xl max-w-2xl mx-auto my-12 space-y-5">
+            <div className="p-4 rounded-2xl bg-purple-50 text-purple-600 border border-purple-200 w-fit mx-auto">
+              <Lock className="w-10 h-10" />
+            </div>
+
             <div className="space-y-2">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-purple-50 border border-purple-200 text-purple-800 text-xs font-extrabold">
-                <Shield className="w-3.5 h-3.5 text-purple-600" />
-                <span>Portal Administrator & Moderasi Konten</span>
-              </div>
-              <h1 className="text-2xl sm:text-4xl font-extrabold text-slate-900">
-                Dashboard Control Center
+              <span className="px-3 py-1 rounded-full text-xs font-extrabold bg-rose-50 text-rose-700 border border-rose-200 uppercase tracking-wider">
+                Akses Terbatas
+              </span>
+              <h1 className="text-2xl font-extrabold text-slate-900">
+                Halaman Ini Khusus Administrator
               </h1>
-              <p className="text-xs sm:text-sm text-slate-600 font-medium">
-                Kelola postingan foto, pengguna, hak akses role, serta pantau status integrasi Supabase & Vercel.
+              <p className="text-xs text-slate-600 font-medium max-w-md mx-auto leading-relaxed">
+                Anda saat ini masuk sebagai <strong className="text-indigo-600">@{currentUser.username} ({currentUser.role})</strong>. Halaman ini memerlukan hak akses role <strong>Admin</strong> untuk moderasi konten dan pengguna.
               </p>
             </div>
 
-            <button
-              onClick={() => setIsSupabaseModalOpen(true)}
-              className="px-5 py-3 rounded-2xl text-xs font-bold text-white btn-primary flex items-center justify-center gap-2 cursor-pointer"
-            >
-              <Database className="w-4 h-4" />
-              <span>Cek Status Supabase</span>
-            </button>
-          </div>
-        </section>
+            <div className="pt-4 flex flex-col sm:flex-row items-center justify-center gap-3">
+              <button
+                onClick={() => setCurrentUser(DEMO_USERS[0])}
+                className="w-full sm:w-auto px-6 py-3 rounded-xl text-xs font-bold text-white btn-primary flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <UserCheck className="w-4 h-4" />
+                <span>Masuk sebagai Admin (Alex Rivera)</span>
+              </button>
 
-        {/* System Stats Overview Grid - Day Theme */}
-        <section className="grid grid-cols-2 lg:grid-cols-5 gap-4">
-          <div className="glass-card rounded-2xl p-4 border border-slate-200/80 bg-white shadow-sm flex items-center gap-3">
-            <div className="p-3 rounded-xl bg-indigo-50 text-indigo-600 border border-indigo-200">
-              <ImageIcon className="w-5 h-5" />
+              <button
+                onClick={() => setIsLoginModalOpen(true)}
+                className="w-full sm:w-auto px-5 py-3 rounded-xl text-xs font-bold text-slate-700 bg-slate-100 border border-slate-200 hover:bg-slate-200 transition-colors cursor-pointer"
+              >
+                Form Login Lainnya
+              </button>
             </div>
-            <div>
-              <p className="text-xl font-extrabold text-slate-900">{stats?.totalPosts || 0}</p>
-              <p className="text-[11px] text-slate-500 font-bold">Total Postingan</p>
-            </div>
-          </div>
-
-          <div className="glass-card rounded-2xl p-4 border border-slate-200/80 bg-white shadow-sm flex items-center gap-3">
-            <div className="p-3 rounded-xl bg-purple-50 text-purple-600 border border-purple-200">
-              <Users className="w-5 h-5" />
-            </div>
-            <div>
-              <p className="text-xl font-extrabold text-slate-900">{stats?.totalUsers || 0}</p>
-              <p className="text-[11px] text-slate-500 font-bold">Total Pengguna</p>
-            </div>
-          </div>
-
-          <div className="glass-card rounded-2xl p-4 border border-slate-200/80 bg-white shadow-sm flex items-center gap-3">
-            <div className="p-3 rounded-xl bg-rose-50 text-rose-600 border border-rose-200">
-              <Heart className="w-5 h-5" />
-            </div>
-            <div>
-              <p className="text-xl font-extrabold text-slate-900">{stats?.totalLikes || 0}</p>
-              <p className="text-[11px] text-slate-500 font-bold">Total Suka</p>
-            </div>
-          </div>
-
-          <div className="glass-card rounded-2xl p-4 border border-slate-200/80 bg-white shadow-sm flex items-center gap-3">
-            <div className="p-3 rounded-xl bg-cyan-50 text-cyan-600 border border-cyan-200">
-              <HardDrive className="w-5 h-5" />
-            </div>
-            <div>
-              <p className="text-xl font-extrabold text-slate-900">{stats?.storageUsedMb || 0} MB</p>
-              <p className="text-[11px] text-slate-500 font-bold">Penggunaan Media</p>
-            </div>
-          </div>
-
-          <div className="glass-card rounded-2xl p-4 border border-slate-200/80 bg-white shadow-sm flex items-center gap-3 col-span-2 lg:col-span-1">
-            <div
-              className={`p-3 rounded-xl border ${
-                isSupabaseConfigured
-                  ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                  : 'bg-amber-50 text-amber-700 border-amber-200'
-              }`}
-            >
-              <Database className="w-5 h-5" />
-            </div>
-            <div>
-              <p className="text-xs font-extrabold text-slate-900">
-                {isSupabaseConfigured ? 'Supabase Live' : 'Demo Fallback'}
-              </p>
-              <p className="text-[10px] text-slate-500 font-semibold">
-                {isSupabaseConfigured ? 'Direct DB & Bucket' : 'Local Storage Sync'}
-              </p>
-            </div>
-          </div>
-        </section>
-
-        {/* Tab Navigation - Day Theme */}
-        <section className="space-y-6">
-          <div className="flex items-center gap-2 border-b border-slate-200 pb-3">
-            <button
-              onClick={() => setActiveTab('content')}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-extrabold transition-all cursor-pointer ${
-                activeTab === 'content'
-                  ? 'bg-purple-600 text-white shadow-md shadow-purple-600/30'
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
-              }`}
-            >
-              <Layers className="w-4 h-4" />
-              <span>Moderasi Konten Foto ({posts.length})</span>
-            </button>
-
-            <button
-              onClick={() => setActiveTab('users')}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-extrabold transition-all cursor-pointer ${
-                activeTab === 'users'
-                  ? 'bg-purple-600 text-white shadow-md shadow-purple-600/30'
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
-              }`}
-            >
-              <Users className="w-4 h-4" />
-              <span>Manajemen Pengguna ({allUsers.length})</span>
-            </button>
-
-            <button
-              onClick={() => setActiveTab('system')}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-extrabold transition-all cursor-pointer ${
-                activeTab === 'system'
-                  ? 'bg-purple-600 text-white shadow-md shadow-purple-600/30'
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
-              }`}
-            >
-              <Settings className="w-4 h-4" />
-              <span>Status & Diagnostik Supabase</span>
-            </button>
-          </div>
-
-          {/* Tab 1: Content Table */}
-          {activeTab === 'content' && (
-            <AdminContentTable
-              posts={posts}
-              onDeletePost={handleDeletePost}
-              onToggleFeatured={handleToggleFeatured}
-              onSelectPost={setSelectedPost}
-              onEditPost={(p) => {
-                setEditingPost(p);
-                setIsUploadOpen(true);
-              }}
-            />
-          )}
-
-          {/* Tab 2: Users Table */}
-          {activeTab === 'users' && (
-            <AdminUserTable
-              users={allUsers}
-              onToggleRole={handleToggleRole}
-              onToggleBan={handleToggleBan}
-            />
-          )}
-
-          {/* Tab 3: System Diagnostics */}
-          {activeTab === 'system' && (
-            <div className="glass-card rounded-3xl p-6 border border-slate-200/80 bg-white space-y-6 shadow-sm">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="text-base font-extrabold text-slate-900">Status & Konfigurasi Supabase Backend</h3>
-                  <p className="text-xs text-slate-500 font-semibold">Informasi lingkungan runtime dan integrasi database</p>
+          </section>
+        ) : (
+          /* Full Admin Dashboard View */
+          <>
+            {/* Admin Banner */}
+            <section className="glass-card rounded-3xl p-6 sm:p-8 border border-slate-200/80 bg-white shadow-md relative overflow-hidden">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-10">
+                <div className="space-y-2">
+                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-purple-50 border border-purple-200 text-purple-800 text-xs font-extrabold">
+                    <Shield className="w-3.5 h-3.5 text-purple-600" />
+                    <span>Portal Administrator & Moderasi Konten</span>
+                  </div>
+                  <h1 className="text-2xl sm:text-4xl font-extrabold text-slate-900">
+                    Dashboard Control Center
+                  </h1>
+                  <p className="text-xs sm:text-sm text-slate-600 font-medium">
+                    Kelola postingan foto, pengguna, hak akses role, serta pantau status integrasi Supabase & Vercel.
+                  </p>
                 </div>
+
                 <button
                   onClick={() => setIsSupabaseModalOpen(true)}
-                  className="px-4 py-2 rounded-xl text-xs font-bold bg-indigo-600 text-white cursor-pointer"
+                  className="px-5 py-3 rounded-2xl text-xs font-bold text-white btn-primary flex items-center justify-center gap-2 cursor-pointer"
                 >
-                  Buka Instruksi Lengkap
+                  <Database className="w-4 h-4" />
+                  <span>Cek Status Supabase</span>
+                </button>
+              </div>
+            </section>
+
+            {/* System Stats Overview Grid */}
+            <section className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+              <div className="glass-card rounded-2xl p-4 border border-slate-200/80 bg-white shadow-sm flex items-center gap-3">
+                <div className="p-3 rounded-xl bg-indigo-50 text-indigo-600 border border-indigo-200">
+                  <ImageIcon className="w-5 h-5" />
+                </div>
+                <div>
+                  <p className="text-xl font-extrabold text-slate-900">{stats?.totalPosts || 0}</p>
+                  <p className="text-[11px] text-slate-500 font-bold">Total Postingan</p>
+                </div>
+              </div>
+
+              <div className="glass-card rounded-2xl p-4 border border-slate-200/80 bg-white shadow-sm flex items-center gap-3">
+                <div className="p-3 rounded-xl bg-purple-50 text-purple-600 border border-purple-200">
+                  <Users className="w-5 h-5" />
+                </div>
+                <div>
+                  <p className="text-xl font-extrabold text-slate-900">{stats?.totalUsers || 0}</p>
+                  <p className="text-[11px] text-slate-500 font-bold">Total Pengguna</p>
+                </div>
+              </div>
+
+              <div className="glass-card rounded-2xl p-4 border border-slate-200/80 bg-white shadow-sm flex items-center gap-3">
+                <div className="p-3 rounded-xl bg-rose-50 text-rose-600 border border-rose-200">
+                  <Heart className="w-5 h-5" />
+                </div>
+                <div>
+                  <p className="text-xl font-extrabold text-slate-900">{stats?.totalLikes || 0}</p>
+                  <p className="text-[11px] text-slate-500 font-bold">Total Suka</p>
+                </div>
+              </div>
+
+              <div className="glass-card rounded-2xl p-4 border border-slate-200/80 bg-white shadow-sm flex items-center gap-3">
+                <div className="p-3 rounded-xl bg-cyan-50 text-cyan-600 border border-cyan-200">
+                  <HardDrive className="w-5 h-5" />
+                </div>
+                <div>
+                  <p className="text-xl font-extrabold text-slate-900">{stats?.storageUsedMb || 0} MB</p>
+                  <p className="text-[11px] text-slate-500 font-bold">Penggunaan Media</p>
+                </div>
+              </div>
+
+              <div className="glass-card rounded-2xl p-4 border border-slate-200/80 bg-white shadow-sm flex items-center gap-3 col-span-2 lg:col-span-1">
+                <div
+                  className={`p-3 rounded-xl border ${
+                    isSupabaseConfigured
+                      ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                      : 'bg-amber-50 text-amber-700 border-amber-200'
+                  }`}
+                >
+                  <Database className="w-5 h-5" />
+                </div>
+                <div>
+                  <p className="text-xs font-extrabold text-slate-900">
+                    {isSupabaseConfigured ? 'Supabase Live' : 'Demo Fallback'}
+                  </p>
+                  <p className="text-[10px] text-slate-500 font-semibold">
+                    {isSupabaseConfigured ? 'Direct DB & Bucket' : 'Local Storage Sync'}
+                  </p>
+                </div>
+              </div>
+            </section>
+
+            {/* Tab Navigation */}
+            <section className="space-y-6">
+              <div className="flex items-center gap-2 border-b border-slate-200 pb-3">
+                <button
+                  onClick={() => setActiveTab('content')}
+                  className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-extrabold transition-all cursor-pointer ${
+                    activeTab === 'content'
+                      ? 'bg-purple-600 text-white shadow-md shadow-purple-600/30'
+                      : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                  }`}
+                >
+                  <Layers className="w-4 h-4" />
+                  <span>Moderasi Konten Foto ({posts.length})</span>
+                </button>
+
+                <button
+                  onClick={() => setActiveTab('users')}
+                  className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-extrabold transition-all cursor-pointer ${
+                    activeTab === 'users'
+                      ? 'bg-purple-600 text-white shadow-md shadow-purple-600/30'
+                      : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                  }`}
+                >
+                  <Users className="w-4 h-4" />
+                  <span>Manajemen Pengguna ({allUsers.length})</span>
+                </button>
+
+                <button
+                  onClick={() => setActiveTab('system')}
+                  className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-extrabold transition-all cursor-pointer ${
+                    activeTab === 'system'
+                      ? 'bg-purple-600 text-white shadow-md shadow-purple-600/30'
+                      : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                  }`}
+                >
+                  <Settings className="w-4 h-4" />
+                  <span>Status & Diagnostik Supabase</span>
                 </button>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-2">
-                  <p className="text-xs font-bold text-slate-700">NEXT_PUBLIC_SUPABASE_URL</p>
-                  <p className="text-xs font-mono text-indigo-700 font-bold truncate">
-                    {process.env.NEXT_PUBLIC_SUPABASE_URL || 'Belum dikonfigurasi (Menggunakan Fallback Local)'}
-                  </p>
-                </div>
+              {/* Tab 1: Content Table */}
+              {activeTab === 'content' && (
+                <AdminContentTable
+                  posts={posts}
+                  onDeletePost={handleDeletePost}
+                  onToggleFeatured={handleToggleFeatured}
+                  onSelectPost={setSelectedPost}
+                  onEditPost={(p) => {
+                    setEditingPost(p);
+                    setIsUploadOpen(true);
+                  }}
+                />
+              )}
 
-                <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-2">
-                  <p className="text-xs font-bold text-slate-700">NEXT_PUBLIC_SUPABASE_ANON_KEY</p>
-                  <p className="text-xs font-mono text-purple-700 font-bold truncate">
-                    {process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-                      ? '••••••••••••••••••••••••' + process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY.slice(-8)
-                      : 'Belum dikonfigurasi'}
-                  </p>
+              {/* Tab 2: Users Table */}
+              {activeTab === 'users' && (
+                <AdminUserTable
+                  users={allUsers}
+                  onToggleRole={handleToggleRole}
+                  onToggleBan={handleToggleBan}
+                />
+              )}
+
+              {/* Tab 3: System Diagnostics */}
+              {activeTab === 'system' && (
+                <div className="glass-card rounded-3xl p-6 border border-slate-200/80 bg-white space-y-6 shadow-sm">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="text-base font-extrabold text-slate-900">Status & Konfigurasi Supabase Backend</h3>
+                      <p className="text-xs text-slate-500 font-semibold">Informasi lingkungan runtime dan integrasi database</p>
+                    </div>
+                    <button
+                      onClick={() => setIsSupabaseModalOpen(true)}
+                      className="px-4 py-2 rounded-xl text-xs font-bold bg-indigo-600 text-white cursor-pointer"
+                    >
+                      Buka Instruksi Lengkap
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-2">
+                      <p className="text-xs font-bold text-slate-700">NEXT_PUBLIC_SUPABASE_URL</p>
+                      <p className="text-xs font-mono text-indigo-700 font-bold truncate">
+                        {process.env.NEXT_PUBLIC_SUPABASE_URL || 'Belum dikonfigurasi (Menggunakan Fallback Local)'}
+                      </p>
+                    </div>
+
+                    <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-2">
+                      <p className="text-xs font-bold text-slate-700">NEXT_PUBLIC_SUPABASE_ANON_KEY</p>
+                      <p className="text-xs font-mono text-purple-700 font-bold truncate">
+                        {process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+                          ? '••••••••••••••••••••••••' + process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY.slice(-8)
+                          : 'Belum dikonfigurasi'}
+                      </p>
+                    </div>
+                  </div>
                 </div>
-              </div>
-            </div>
-          )}
-        </section>
+              )}
+            </section>
+          </>
+        )}
       </main>
 
       {/* Modals */}
@@ -343,6 +390,12 @@ export default function AdminDashboardPage() {
       <SupabaseGuideModal
         isOpen={isSupabaseModalOpen}
         onClose={() => setIsSupabaseModalOpen(false)}
+      />
+
+      <LoginModal
+        isOpen={isLoginModalOpen}
+        onClose={() => setIsLoginModalOpen(false)}
+        onLoginSuccess={(u) => setCurrentUser(u)}
       />
     </div>
   );

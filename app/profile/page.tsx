@@ -6,6 +6,7 @@ import PhotoCard from '../../components/PhotoCard';
 import UploadModal from '../../components/UploadModal';
 import PhotoDetailModal from '../../components/PhotoDetailModal';
 import SupabaseGuideModal from '../../components/SupabaseGuideModal';
+import LoginModal from '../../components/LoginModal';
 import { Post, UserProfile } from '../../lib/types';
 import {
   fetchPosts,
@@ -29,6 +30,7 @@ export default function ProfilePage() {
   const [editingPost, setEditingPost] = useState<Post | null>(null);
   const [selectedPost, setSelectedPost] = useState<Post | null>(null);
   const [isSupabaseModalOpen, setIsSupabaseModalOpen] = useState(false);
+  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -102,10 +104,11 @@ export default function ProfilePage() {
           setIsUploadOpen(true);
         }}
         onOpenSupabaseModal={() => setIsSupabaseModalOpen(true)}
+        onOpenLoginModal={() => setIsLoginModalOpen(true)}
       />
 
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 pt-6 space-y-8">
-        {/* Profile Card Header - Day Theme */}
+        {/* Profile Card Header */}
         <section className="glass-card rounded-3xl overflow-hidden border border-slate-200/80 bg-white shadow-md relative">
           <div className="h-44 sm:h-56 bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-800 relative">
             <div className="absolute inset-0 bg-black/10" />
@@ -241,6 +244,12 @@ export default function ProfilePage() {
       <SupabaseGuideModal
         isOpen={isSupabaseModalOpen}
         onClose={() => setIsSupabaseModalOpen(false)}
+      />
+
+      <LoginModal
+        isOpen={isLoginModalOpen}
+        onClose={() => setIsLoginModalOpen(false)}
+        onLoginSuccess={(u) => setCurrentUser(u)}
       />
     </div>
   );
