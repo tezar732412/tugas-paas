@@ -3,10 +3,16 @@
 -- Jalankan query ini di Supabase SQL Editor proyek Anda.
 -- =========================================================
 
+-- 0. CLEANUP PREVIOUS INCOMPLETE TABLES (Sangat Penting jika skrip pernah gagal sebelumnya)
+DROP TABLE IF EXISTS public.likes CASCADE;
+DROP TABLE IF EXISTS public.comments CASCADE;
+DROP TABLE IF EXISTS public.posts CASCADE;
+DROP TABLE IF EXISTS public.profiles CASCADE;
+
 -- 1. EXTENSIONS
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
--- 2. ENUM FOR USER ROLES (Safely create if not exists)
+-- 2. ENUM FOR USER ROLES
 DO $$ 
 BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'user_role') THEN
@@ -15,21 +21,19 @@ BEGIN
 END $$;
 
 -- 3. PROFILES TABLE (Linked to auth.users)
-CREATE TABLE IF NOT EXISTS public.profiles (
-  id UUID NOT NULL,
+CREATE TABLE public.profiles (
+  id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
   username TEXT UNIQUE NOT NULL,
   full_name TEXT,
   avatar_url TEXT,
   role user_role DEFAULT 'user'::user_role NOT NULL,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
-  CONSTRAINT profiles_pkey PRIMARY KEY (id),
-  CONSTRAINT profiles_id_fkey FOREIGN KEY (id) REFERENCES auth.users(id) ON DELETE CASCADE
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
 -- 4. POSTS TABLE (CRUD Photos)
-CREATE TABLE IF NOT EXISTS public.posts (
+CREATE TABLE public.posts (
   id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
-  user_id UUID NOT NULL,
+  user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
   title TEXT NOT NULL,
   description TEXT,
   category TEXT DEFAULT 'General' NOT NULL,
@@ -39,30 +43,25 @@ CREATE TABLE IF NOT EXISTS public.posts (
   comments_count INT DEFAULT 0 NOT NULL,
   is_featured BOOLEAN DEFAULT FALSE NOT NULL,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
-  CONSTRAINT posts_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(id) ON DELETE CASCADE
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
 -- 5. COMMENTS TABLE
-CREATE TABLE IF NOT EXISTS public.comments (
+CREATE TABLE public.comments (
   id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
-  post_id UUID NOT NULL,
-  user_id UUID NOT NULL,
+  post_id UUID NOT NULL REFERENCES public.posts(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
   content TEXT NOT NULL,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
-  CONSTRAINT comments_post_id_fkey FOREIGN KEY (post_id) REFERENCES public.posts(id) ON DELETE CASCADE,
-  CONSTRAINT comments_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(id) ON DELETE CASCADE
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
 -- 6. LIKES TABLE
-CREATE TABLE IF NOT EXISTS public.likes (
+CREATE TABLE public.likes (
   id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
-  post_id UUID NOT NULL,
-  user_id UUID NOT NULL,
+  post_id UUID NOT NULL REFERENCES public.posts(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
-  CONSTRAINT likes_post_id_fkey FOREIGN KEY (post_id) REFERENCES public.posts(id) ON DELETE CASCADE,
-  CONSTRAINT likes_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(id) ON DELETE CASCADE,
-  CONSTRAINT likes_post_user_unique UNIQUE(post_id, user_id)
+  UNIQUE(post_id, user_id)
 );
 
 -- 7. ENABLE ROW LEVEL SECURITY (RLS)
